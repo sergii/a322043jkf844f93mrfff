@@ -48,6 +48,12 @@ jobs:
         with:
           bundler-cache: true
 
+      - name: Install PostgreSQL 18 client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y postgresql-client-18
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
+
       - name: Migrate and dump SQL structure
         run: bin/rails db:migrate
 
