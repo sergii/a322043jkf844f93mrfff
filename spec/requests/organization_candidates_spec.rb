@@ -24,7 +24,7 @@ RSpec.describe "Organization candidate registry", type: :request do
     expect(response).to redirect_to(candidates_path)
 
     Current.set(organization: Organization.last) do
-      expect(Candidate.sole.english_proficiency).to have_attributes(language_code: "en", level: "b2")
+      expect(Candidate.for_organization(Organization.last).sole.english_proficiency).to have_attributes(language_code: "en", level: "b2")
     end
 
     get candidates_path
@@ -44,11 +44,13 @@ RSpec.describe "Organization candidate registry", type: :request do
     post organization_selection_path, params: { organization_id: first_organization.typed_id }
     post candidates_path, params: { first_name: "Private", last_name: "Candidate", consent_status: "unknown", job_id: job.typed_id }
 
+    private_candidate = Candidate.for_organization(first_organization).find_by!(first_name: "Private", last_name: "Candidate")
+
     post organization_selection_path, params: { organization_id: second_organization.typed_id }
     get candidates_path
 
     expect(response).to have_http_status(:success)
-    expect(response.body).not_to include("Private")
+    expect(response.body).not_to include(private_candidate.typed_id)
   end
 
   it "shows the selected organization's applications on the pipeline board" do
@@ -74,7 +76,7 @@ RSpec.describe "Organization candidate registry", type: :request do
     post candidates_path, params: {
       first_name: "Katherine", last_name: "Johnson", consent_status: "unknown", job_id: job.typed_id
     }
-    application = Current.set(organization: Organization.last) { Application.last }
+    application = Current.set(organization: Organization.last) { Application.for_organization(Organization.last).last }
 
     patch application_path(application), params: { stage: "recruiter_screen", return_to: "pipeline" }
 
