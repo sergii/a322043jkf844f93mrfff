@@ -13,7 +13,7 @@ class WorkspaceContext
       previous_setting = connection.select_value("SELECT current_setting('app.current_organization', true)")
 
       Current.organization = workspace
-      Current.membership = membership if membership
+      Current.membership = membership
       set_database_workspace(connection, workspace.id)
 
       yield
