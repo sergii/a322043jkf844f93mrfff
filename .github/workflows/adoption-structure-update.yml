@@ -1,0 +1,63 @@
+name: Adoption structure update
+
+on:
+  push:
+    branches:
+      - lmx/adoption
+    paths:
+      - .github/workflows/adoption-structure-update.yml
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    env:
+      RAILS_ENV: test
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: lmx
+      POSTGRES_PASSWORD: lmx_test
+      POSTGRES_TEST_DATABASE: lmx_test
+
+    services:
+      postgres:
+        image: postgres:18.4
+        env:
+          POSTGRES_DB: lmx_test
+          POSTGRES_USER: lmx
+          POSTGRES_PASSWORD: lmx_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lmx -d lmx_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout adoption branch
+        uses: actions/checkout@v7
+        with:
+          ref: lmx/adoption
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Migrate and dump SQL structure
+        run: bin/rails db:migrate
+
+      - name: Commit structure update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add db/structure.sql
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Update SQL structure for source observations"
+          git push origin HEAD:lmx/adoption
