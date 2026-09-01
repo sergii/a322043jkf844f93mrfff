@@ -45,7 +45,14 @@ jobs:
           bundler-cache: true
       - name: Load current structure and apply pending migrations
         run: |
-          bin/rails db:drop db:create db:schema:load db:migrate
+          bin/rails db:drop db:create db:schema:load
+          bin/rails runner 'ActiveRecord::Base.connection_pool.migration_context.migrate'
+      - name: Dump structure with PostgreSQL 18 client
+        run: |
+          POSTGRES_CONTAINER="$(docker ps --filter ancestor=postgres:18.4 --format '{{.ID}}' | head -1)"
+          test -n "$POSTGRES_CONTAINER"
+          docker exec -e PGPASSWORD=lmx_test "$POSTGRES_CONTAINER" \
+            pg_dump --schema-only --no-privileges --no-owner -U lmx -d lmx_test > db/structure.sql
       - name: Commit generated structure
         run: |
           if git diff --quiet -- db/structure.sql; then
