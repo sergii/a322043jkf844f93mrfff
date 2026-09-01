@@ -1,16 +1,11 @@
 # frozen_string_literal: true
 
-# Adapts Enforceable to Hire.do's two-principal Action Policy setup. Hire.do
-# policies require both the authenticated user and their selected workspace
-# membership; Enforceable's stock Action Policy adapter only supplies `user`.
+# Adapts Enforceable to LMX's two-principal Action Policy setup. Policies can
+# require both the authenticated user and the selected workspace membership.
 module Enforceable
-  class HireDoActionPolicyBinding < Binding
+  class LmxActionPolicyBinding < Binding
     Actor = Data.define(:user, :membership)
 
-    # Enforceable executes every declared policy against every subject in a
-    # world. Hire.do intentionally verifies more than one record family in its
-    # ATS world, so unrelated policy/record pairs must behave as a non-match
-    # rather than attempt an invalid policy call.
     RECORD_TYPES = {
       "Client::ApplicationPolicy" => "Application",
       "InterviewPolicy" => "Interview"

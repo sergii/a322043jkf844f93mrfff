@@ -1,27 +1,23 @@
 # frozen_string_literal: true
 
 # Enforceable is a test-only guardrail. It verifies that declared point checks
-# and their relation scopes agree, without participating in runtime
-# authorization.
+# and their relation scopes agree, without participating in runtime authorization.
 if Rails.env.test? && defined?(Enforceable)
-  require Rails.root.join("lib/enforceable/hire_do_action_policy_binding")
+  require Rails.root.join("lib/enforceable/lmx_action_policy_binding")
 
   Enforceable.configure do |config|
-    config.world = :ats
-    config.binding = Enforceable::HireDoActionPolicyBinding.new
+    config.world = :lmx
+    config.binding = Enforceable::LmxActionPolicyBinding.new
   end
 
   verification_fixtures = {}
   build_fixtures = lambda do
-    verification_fixtures[:ats] ||= begin
+    verification_fixtures[:lmx] ||= begin
       organization = Organization.create!(
-        name: "Enforceable ATS verification",
-        slug: "enforceable-ats-#{SecureRandom.hex(6)}"
+        name: "Enforceable LMX verification",
+        slug: "enforceable-lmx-#{SecureRandom.hex(6)}"
       )
 
-      # All scoped records are created and evaluated with the same tenant RLS
-      # context. The Enforceable runner wraps this world in a transaction and
-      # rolls it back when verification finishes.
       Current.organization = organization
       connection = ActiveRecord::Base.connection
       connection.execute("SET app.current_organization = #{connection.quote(organization.id)}")
@@ -75,8 +71,8 @@ if Rails.env.test? && defined?(Enforceable)
       )
 
       {
-        recruiter: Enforceable::HireDoActionPolicyBinding::Actor.new(recruiter, recruiter_membership),
-        client_user: Enforceable::HireDoActionPolicyBinding::Actor.new(client_user, client_membership),
+        recruiter: Enforceable::LmxActionPolicyBinding::Actor.new(recruiter, recruiter_membership),
+        client_user: Enforceable::LmxActionPolicyBinding::Actor.new(client_user, client_membership),
         application:,
         other_application:,
         interview:
@@ -84,11 +80,10 @@ if Rails.env.test? && defined?(Enforceable)
     end
   end
 
-  Enforceable::World.define(:ats) do
+  Enforceable::World.define(:lmx) do
     actor(:recruiter) { build_fixtures.call.fetch(:recruiter) }
     actor(:client_user) { build_fixtures.call.fetch(:client_user) }
     subject(:client_application) { build_fixtures.call.fetch(:application) }
-    # This is the adversarial fixture that makes a broad client scope fail.
     subject(:other_client_application) { build_fixtures.call.fetch(:other_application) }
     subject(:interview) { build_fixtures.call.fetch(:interview) }
   end
