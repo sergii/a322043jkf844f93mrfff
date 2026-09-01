@@ -7,7 +7,6 @@ import {
   LayoutGrid,
   ListTodo,
   CalendarDays,
-  ChartGantt,
   PanelsTopLeft,
   UserPlus,
   UsersRound,
@@ -63,11 +62,6 @@ const mainNavItems: NavItem[] = [
     title: "Pipeline",
     href: "/pipeline",
     icon: PanelsTopLeft,
-  },
-  {
-    title: "Gantt roadmap",
-    href: "/gantt",
-    icon: ChartGantt,
   },
   {
     title: "Candidates",
