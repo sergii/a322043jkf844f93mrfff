@@ -100,7 +100,7 @@ class CreateMarketCatalogCore < ActiveRecord::Migration[8.1]
       t.string :role, null: false
       t.string :party_label
       t.decimal :confidence, precision: 4, scale: 3, null: false, default: 1.0
-      t.jsonb :evidence, null: false, default: [ ]
+      t.jsonb :evidence, null: false, default: []
       t.jsonb :metadata, null: false, default: {}
       t.timestamps
     end
@@ -131,7 +131,7 @@ class CreateMarketCatalogCore < ActiveRecord::Migration[8.1]
         foreign_key: { to_table: :market_catalog_job_openings },
         index: { name: "idx_market_resolutions_to_opening" }
       t.decimal :confidence, precision: 4, scale: 3, null: false
-      t.jsonb :evidence, null: false, default: [ ]
+      t.jsonb :evidence, null: false, default: []
       t.string :resolver_key, null: false
       t.string :resolver_version, null: false
       t.datetime :decided_at, null: false
