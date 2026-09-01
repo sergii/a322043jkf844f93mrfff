@@ -47,7 +47,7 @@ RSpec.describe "Market Catalog core models", type: :model do
       role: "end_client",
       party_label: "US healthcare client",
       confidence: 1.0,
-      evidence: [{ "kind" => "listed", "claim" => "US healthcare client" }]
+      evidence: [ { "kind" => "listed", "claim" => "US healthcare client" } ]
     )
 
     expect(party.company).to be_nil
