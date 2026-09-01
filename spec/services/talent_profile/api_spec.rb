@@ -2,7 +2,7 @@
 
 require "rails_helper"
 
-RSpec.describe TalentProfile::API do
+RSpec.describe TalentProfile::Api do
   let!(:workspace) { Organization.create!(name: "Talent Profile", slug: "talent-profile") }
   let!(:other_workspace) { Organization.create!(name: "Other", slug: "talent-profile-other") }
   let!(:user) do
@@ -21,7 +21,7 @@ RSpec.describe TalentProfile::API do
         first_name: "Serhii",
         last_name: "Candidate",
         linked_user_id: user.typed_id,
-        profile: {skills: ["Ruby", "Rails"]}
+        profile: { skills: [ "Ruby", "Rails" ] }
       )
     end
 
@@ -29,12 +29,12 @@ RSpec.describe TalentProfile::API do
     expect(result.dig(:candidate, :linked_user_id)).to eq(user.typed_id)
     expect(result.dig(:candidate, :id)).not_to eq(user.typed_id)
     expect(result.dig(:profile_version, :version_number)).to eq(1)
-    expect(result.dig(:profile_version, :profile)).to eq("skills" => ["Ruby", "Rails"])
+    expect(result.dig(:profile_version, :profile)).to eq("skills" => [ "Ruby", "Rails" ])
   end
 
   it "creates immutable, monotonically versioned profile snapshots backed by selected evidence" do
     candidate = WorkspaceContext.with(workspace) do
-      described_class.create_candidate(first_name: "Ada", last_name: "Lovelace", profile: {skills: ["Ruby"]})
+      described_class.create_candidate(first_name: "Ada", last_name: "Lovelace", profile: { skills: [ "Ruby" ] })
     end
 
     evidence = WorkspaceContext.with(workspace) do
@@ -44,15 +44,15 @@ RSpec.describe TalentProfile::API do
         source_reference: "resume:2026-09",
         claim: "Built a production Rails platform",
         confidence: 0.95,
-        provenance: {document_digest: "abc123"}
+        provenance: { document_digest: "abc123" }
       )
     end
 
     version = WorkspaceContext.with(workspace) do
       described_class.create_profile_version(
         candidate_id: candidate.dig(:candidate, :id),
-        profile: {skills: ["Ruby", "Rails"], achievements: ["Production platform"]},
-        evidence_ids: [evidence.fetch(:id)]
+        profile: { skills: [ "Ruby", "Rails" ], achievements: [ "Production platform" ] },
+        evidence_ids: [ evidence.fetch(:id) ]
       )
     end
 
@@ -66,7 +66,7 @@ RSpec.describe TalentProfile::API do
       TalentProfile::CandidateProfileVersion.find(TalentProfile::Identifiers.uuid(version.fetch(:id), prefix: "candidate_profile_version"))
     end
 
-    expect { record.update!(profile_data: {skills: ["Changed"]}) }.to raise_error(ActiveRecord::ReadOnlyRecord)
+    expect { record.update!(profile_data: { skills: [ "Changed" ] }) }.to raise_error(ActiveRecord::ReadOnlyRecord)
     expect { record.destroy! }.to raise_error(ActiveRecord::ReadOnlyRecord)
   end
 
@@ -79,7 +79,7 @@ RSpec.describe TalentProfile::API do
       WorkspaceContext.with(workspace) do
         described_class.create_profile_version(
           candidate_id: candidate.dig(:candidate, :id),
-          profile: {strengths: ["Systems thinking"]},
+          profile: { strengths: [ "Systems thinking" ] },
           origin: "agent_accepted"
         )
       end
@@ -88,7 +88,7 @@ RSpec.describe TalentProfile::API do
     accepted = WorkspaceContext.with(workspace, membership:) do
       described_class.create_profile_version(
         candidate_id: candidate.dig(:candidate, :id),
-        profile: {strengths: ["Systems thinking"]},
+        profile: { strengths: [ "Systems thinking" ] },
         origin: "agent_accepted",
         accepted_by_user_id: user.typed_id
       )

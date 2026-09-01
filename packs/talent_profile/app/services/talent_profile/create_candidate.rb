@@ -24,7 +24,7 @@ module TalentProfile
             accepted_by_user_id:
           )
 
-          [candidate, profile_version]
+          [ candidate, profile_version ]
         end
       end
     end

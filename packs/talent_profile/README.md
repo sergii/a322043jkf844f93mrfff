@@ -27,7 +27,7 @@ Raw observations and agent suggestions belong outside this canonical snapshot un
 
 ## Public API
 
-Other packages should use only `TalentProfile::API` for Phase 0 operations:
+Other packages should use only `TalentProfile::Api` for Phase 0 operations:
 
 - `create_candidate`
 - `record_evidence`

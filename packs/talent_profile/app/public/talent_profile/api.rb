@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module TalentProfile
-  module API
+  module Api
     module_function
 
     def create_candidate(**attributes)

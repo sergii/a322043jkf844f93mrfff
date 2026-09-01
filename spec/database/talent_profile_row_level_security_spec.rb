@@ -34,15 +34,15 @@ RSpec.describe "Talent Profile row-level security", type: :model do
     @runtime_connection&.close
     @owner_connection&.exec_params(
       "DELETE FROM candidate_profile_versions WHERE id = ANY($1::uuid[])",
-      ["{#{@version_a_id},#{@version_b_id}}"]
+      [ "{#{@version_a_id},#{@version_b_id}}" ]
     )
     @owner_connection&.exec_params(
       "DELETE FROM candidates WHERE id = ANY($1::uuid[])",
-      ["{#{@candidate_a_id},#{@candidate_b_id}}"]
+      [ "{#{@candidate_a_id},#{@candidate_b_id}}" ]
     )
     @owner_connection&.exec_params(
       "DELETE FROM organizations WHERE id = ANY($1::uuid[])",
-      ["{#{@workspace_a_id},#{@workspace_b_id}}"]
+      [ "{#{@workspace_a_id},#{@workspace_b_id}}" ]
     )
     @owner_connection&.close
   end
@@ -65,7 +65,7 @@ RSpec.describe "Talent Profile row-level security", type: :model do
 
     @runtime_connection.exec_params(
       "SELECT set_config('app.current_organization', $1, false)",
-      [@workspace_a_id]
+      [ @workspace_a_id ]
     )
 
     expect(profile_version_ids).to contain_exactly(@version_a_id)
@@ -75,11 +75,11 @@ RSpec.describe "Talent Profile row-level security", type: :model do
   it "rejects cross-workspace writes at the database boundary" do
     @runtime_connection.exec_params(
       "SELECT set_config('app.current_organization', $1, false)",
-      [@workspace_a_id]
+      [ @workspace_a_id ]
     )
 
     expect do
-      @runtime_connection.exec_params(<<~SQL, [SecureRandom.uuid, @workspace_b_id, @candidate_b_id])
+      @runtime_connection.exec_params(<<~SQL, [ SecureRandom.uuid, @workspace_b_id, @candidate_b_id ])
         INSERT INTO candidate_profile_versions
           (id, organization_id, candidate_id, version_number, schema_version, profile_data, content_digest, origin, created_at)
         VALUES
@@ -123,21 +123,21 @@ RSpec.describe "Talent Profile row-level security", type: :model do
   end
 
   def create_workspace(id, name)
-    @owner_connection.exec_params(<<~SQL, [id, name, "talent-rls-#{id.delete('-')}"])
+    @owner_connection.exec_params(<<~SQL, [ id, name, "talent-rls-#{id.delete('-')}" ])
       INSERT INTO organizations (id, name, slug, created_at, updated_at)
       VALUES ($1, $2, $3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     SQL
   end
 
   def create_candidate(id, workspace_id, first_name)
-    @owner_connection.exec_params(<<~SQL, [id, workspace_id, first_name])
+    @owner_connection.exec_params(<<~SQL, [ id, workspace_id, first_name ])
       INSERT INTO candidates (id, organization_id, first_name, last_name, consent_status, created_at, updated_at)
       VALUES ($1, $2, $3, 'Candidate', 'unknown', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     SQL
   end
 
   def create_profile_version(id, workspace_id, candidate_id)
-    @owner_connection.exec_params(<<~SQL, [id, workspace_id, candidate_id])
+    @owner_connection.exec_params(<<~SQL, [ id, workspace_id, candidate_id ])
       INSERT INTO candidate_profile_versions
         (id, organization_id, candidate_id, version_number, schema_version, profile_data, content_digest, origin, created_at)
       VALUES
