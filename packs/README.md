@@ -1,10 +1,12 @@
 # LMX packages
 
-LMX is a domain-driven modular monolith. Each directory under `packs/` is a bounded-context ownership boundary.
+LMX is a domain-driven modular monolith. Each directory under `packs/` is a bounded-context ownership boundary and a preferred parallel-development lane.
 
 Packwerk is enabled as a dependency-boundary guardrail. Packwerk 3.3 core checks dependencies; it does not provide privacy checking. Public APIs are therefore kept narrow by package structure and conventions, while dependency declarations are mechanically checked in CI.
 
 The repository root is intentionally a non-strict legacy package during adoption. New domain code goes into strict packages and must declare every cross-package dependency explicitly.
+
+Read `OWNERSHIP.md` for the semantic ownership of each package and `../AGENTS.md` before concurrent agent work.
 
 Initial packages:
 
