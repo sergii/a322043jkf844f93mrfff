@@ -8,6 +8,7 @@ The repository root is intentionally a non-strict legacy package during adoption
 
 Initial packages:
 
+- `platform` - shared technical Rails primitives with no business ownership, such as `ApplicationRecord` and typed IDs
 - `workspace` - workspace identity, users, memberships, tenant execution context
 - `acquisition` - sources, adapters, raw payloads, ingestion records, source observations
 - `market_catalog` - companies, opening parties, job openings/postings, identity resolution, lifecycle

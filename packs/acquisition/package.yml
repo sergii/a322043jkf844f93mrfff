@@ -1,4 +1,7 @@
 enforce_dependencies: strict
-dependencies: []
+dependencies:
+  - packs/platform
 metadata:
   bounded_context: acquisition
+  owns:
+    - SourceObservation
