@@ -4,7 +4,7 @@ namespace :db do
   desc "Provision the restricted PostgreSQL runtime role (run as the schema owner)"
   task provision_runtime_role: :environment do
     connection = ActiveRecord::Base.connection
-    runtime_role = ENV.fetch("POSTGRES_RUNTIME_USER", "hire_do_app")
+    runtime_role = ENV.fetch("POSTGRES_RUNTIME_USER", "lmx_app")
     runtime_password = ENV.fetch("POSTGRES_RUNTIME_PASSWORD")
 
     unless runtime_role.match?(/\A[a-zA-Z_][a-zA-Z0-9_]*\z/)
