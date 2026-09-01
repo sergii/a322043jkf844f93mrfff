@@ -31,7 +31,7 @@ RSpec.describe MarketCatalog::ResolvePostingOpeningLink, type: :model do
       posting_id: posting.typed_id,
       opening_id: first_opening.typed_id,
       confidence: 0.98,
-      evidence: [{ "kind" => "canonical_application_url", "value" => "https://example.test/apply/123" }],
+      evidence: [ { "kind" => "canonical_application_url", "value" => "https://example.test/apply/123" } ],
       resolver_key: "deterministic",
       resolver_version: "v1",
       decided_at: observed_at
@@ -55,7 +55,7 @@ RSpec.describe MarketCatalog::ResolvePostingOpeningLink, type: :model do
       posting_id: posting.id,
       opening_id: first_opening.id,
       confidence: 0.8,
-      evidence: [{ "kind" => "source_external_id" }],
+      evidence: [ { "kind" => "source_external_id" } ],
       resolver_key: "resolver",
       resolver_version: "v1"
     )
@@ -64,7 +64,7 @@ RSpec.describe MarketCatalog::ResolvePostingOpeningLink, type: :model do
       posting_id: posting.id,
       opening_id: second_opening.id,
       confidence: 0.95,
-      evidence: [{ "kind" => "manual_review" }],
+      evidence: [ { "kind" => "manual_review" } ],
       resolver_key: "resolver",
       resolver_version: "v2"
     )
@@ -87,7 +87,7 @@ RSpec.describe MarketCatalog::ResolvePostingOpeningLink, type: :model do
       posting_id: posting.id,
       opening_id: first_opening.id,
       confidence: 0.9,
-      evidence: [{ "kind" => "source_external_id" }],
+      evidence: [ { "kind" => "source_external_id" } ],
       resolver_key: "resolver",
       resolver_version: "v1"
     )
@@ -96,7 +96,7 @@ RSpec.describe MarketCatalog::ResolvePostingOpeningLink, type: :model do
       posting_id: posting.id,
       opening_id: nil,
       confidence: 1.0,
-      evidence: [{ "kind" => "manual_correction" }],
+      evidence: [ { "kind" => "manual_correction" } ],
       resolver_key: "human_review",
       resolver_version: "v1"
     )
@@ -114,7 +114,7 @@ RSpec.describe MarketCatalog::ResolvePostingOpeningLink, type: :model do
       posting_id: posting.id,
       opening_id: first_opening.id,
       confidence: 0.9,
-      evidence: [{ "kind" => "source_external_id" }],
+      evidence: [ { "kind" => "source_external_id" } ],
       resolver_key: "resolver",
       resolver_version: "v1"
     )
@@ -124,7 +124,7 @@ RSpec.describe MarketCatalog::ResolvePostingOpeningLink, type: :model do
         posting_id: posting.id,
         opening_id: first_opening.id,
         confidence: 0.9,
-        evidence: [{ "kind" => "source_external_id" }],
+        evidence: [ { "kind" => "source_external_id" } ],
         resolver_key: "resolver",
         resolver_version: "v1"
       )
