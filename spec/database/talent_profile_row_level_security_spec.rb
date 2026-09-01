@@ -88,44 +88,38 @@ RSpec.describe "Talent Profile row-level security", type: :model do
     end.to raise_error(PG::InsufficientPrivilege, /row-level security policy/)
   end
 
-  class << self
-    private
+  private
 
-    def provision_runtime_role!
-      connection = ActiveRecord::Base.connection
-      role = connection.quote_column_name(RUNTIME_ROLE)
-      password = connection.quote(RUNTIME_PASSWORD)
-      database = connection.quote_column_name(connection_options.fetch(:dbname))
+  def provision_runtime_role!
+    connection = ActiveRecord::Base.connection
+    role = connection.quote_column_name(RUNTIME_ROLE)
+    password = connection.quote(RUNTIME_PASSWORD)
+    database = connection.quote_column_name(connection_options.fetch(:dbname))
 
-      connection.execute(<<~SQL)
-        DO $$
-        BEGIN
-          IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = #{connection.quote(RUNTIME_ROLE)}) THEN
-            CREATE ROLE #{role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
-          END IF;
-        END
-        $$;
-      SQL
-      connection.execute("ALTER ROLE #{role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD #{password}")
-      connection.execute("GRANT CONNECT ON DATABASE #{database} TO #{role}")
-      connection.execute("GRANT USAGE ON SCHEMA public TO #{role}")
-      connection.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO #{role}")
-    end
-
-    def connection_options
-      config = ActiveRecord::Base.connection_db_config.configuration_hash
-      {
-        host: config.fetch(:host),
-        port: config.fetch(:port),
-        dbname: config.fetch(:database),
-        user: config.fetch(:username),
-        password: config.fetch(:password)
-      }
-    end
+    connection.execute(<<~SQL)
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = #{connection.quote(RUNTIME_ROLE)}) THEN
+          CREATE ROLE #{role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+        END IF;
+      END
+      $$;
+    SQL
+    connection.execute("ALTER ROLE #{role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD #{password}")
+    connection.execute("GRANT CONNECT ON DATABASE #{database} TO #{role}")
+    connection.execute("GRANT USAGE ON SCHEMA public TO #{role}")
+    connection.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO #{role}")
   end
 
   def connection_options
-    self.class.send(:connection_options)
+    config = ActiveRecord::Base.connection_db_config.configuration_hash
+    {
+      host: config.fetch(:host),
+      port: config.fetch(:port),
+      dbname: config.fetch(:database),
+      user: config.fetch(:username),
+      password: config.fetch(:password)
+    }
   end
 
   def create_workspace(id, name)

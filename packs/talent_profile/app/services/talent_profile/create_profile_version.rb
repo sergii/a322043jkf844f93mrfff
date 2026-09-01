@@ -18,7 +18,7 @@ module TalentProfile
           version = CandidateProfileVersion.create!(
             organization_id: workspace.id,
             candidate:,
-            version_number: next_version_number(candidate),
+            version_number: next_version_number(candidate, workspace),
             schema_version: 1,
             profile_data: normalized_profile,
             content_digest: CanonicalJson.digest(normalized_profile),
@@ -60,8 +60,8 @@ module TalentProfile
         raise ActiveRecord::RecordNotFound, "Evidence does not belong to the candidate in the current workspace"
       end
 
-      def next_version_number(candidate)
-        CandidateProfileVersion.where(candidate_id: candidate.id).maximum(:version_number).to_i + 1
+      def next_version_number(candidate, workspace)
+        CandidateProfileVersion.for_organization(workspace).where(candidate_id: candidate.id).maximum(:version_number).to_i + 1
       end
 
       def acceptance_attributes(origin, accepted_by_user_id)
