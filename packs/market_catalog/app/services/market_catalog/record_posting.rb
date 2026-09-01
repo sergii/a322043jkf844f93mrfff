@@ -52,7 +52,7 @@ module MarketCatalog
       :publisher_company, :source_published_at, :source_updated_at, :description_fingerprint, :metadata
 
     def find_existing_posting
-      matches = [ ]
+      matches = []
       matches << JobPosting.find_by(source_key:, external_id:) if external_id
 
       canonical_digest = JobPosting.url_digest(canonical_url)
