@@ -22,7 +22,7 @@ module MarketCatalog
       @posting = find_record(JobPosting, posting_id, "posting_")
       @opening = opening_id.present? ? find_record(JobOpening, opening_id, "opening_") : nil
       @confidence = confidence
-      @evidence = evidence || [ ]
+      @evidence = evidence || []
       @resolver_key = resolver_key.to_s.strip.downcase
       @resolver_version = resolver_version.to_s.strip.downcase
       @decided_at = decided_at.respond_to?(:in_time_zone) ? decided_at.in_time_zone : Time.zone.parse(decided_at.to_s)
