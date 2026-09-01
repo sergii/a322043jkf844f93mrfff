@@ -32,9 +32,7 @@ module Acquisition
 
     def call
       attributes = observation_attributes
-      observation = SourceObservation.create_or_find_by!(idempotency_key: attributes.fetch(:idempotency_key)) do |record|
-        record.assign_attributes(attributes.except(:idempotency_key))
-      end
+      observation = find_or_create_observation(attributes)
 
       return observation if same_observation?(observation, attributes)
 
@@ -44,6 +42,21 @@ module Acquisition
     private
 
     attr_reader :source_key, :transport, :observed_at, :payload, :external_id, :canonical_url, :metadata
+
+    def find_or_create_observation(attributes)
+      idempotency_key = attributes.fetch(:idempotency_key)
+
+      SourceObservation.find_by(idempotency_key:) || create_observation(attributes)
+    end
+
+    def create_observation(attributes)
+      SourceObservation.create!(attributes)
+    rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique => error
+      # Another worker may have persisted the same immutable observation after
+      # our initial lookup. Return that row only when the idempotency key now
+      # exists; otherwise preserve the original validation/database failure.
+      SourceObservation.find_by(idempotency_key: attributes.fetch(:idempotency_key)) || raise(error)
+    end
 
     def observation_attributes
       @observation_attributes ||= {
