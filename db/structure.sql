@@ -301,7 +301,7 @@ CREATE TABLE public.competency_assessments (
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     CONSTRAINT competency_assessments_confidence_check CHECK (((confidence IS NULL) OR ((confidence >= (0)::numeric) AND (confidence <= (1)::numeric)))),
-    CONSTRAINT competency_assessments_status_check CHECK (((status)::text = ANY ((ARRAY['not_assessed'::character varying, 'insufficient_evidence'::character varying, 'weak'::character varying, 'demonstrated'::character varying])::text[])))
+    CONSTRAINT competency_assessments_status_check CHECK (((status)::text = ANY (ARRAY[('not_assessed'::character varying)::text, ('insufficient_evidence'::character varying)::text, ('weak'::character varying)::text, ('demonstrated'::character varying)::text])))
 );
 
 ALTER TABLE ONLY public.competency_assessments FORCE ROW LEVEL SECURITY;
@@ -322,7 +322,7 @@ CREATE TABLE public.evidences (
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     CONSTRAINT evidences_confidence_check CHECK (((confidence IS NULL) OR ((confidence >= (0)::numeric) AND (confidence <= (1)::numeric)))),
-    CONSTRAINT evidences_source_type_check CHECK (((source_type)::text = ANY ((ARRAY['transcript'::character varying, 'interviewer_note'::character varying, 'resume'::character varying, 'live_coding'::character varying, 'take_home_assignment'::character varying])::text[])))
+    CONSTRAINT evidences_source_type_check CHECK (((source_type)::text = ANY (ARRAY[('transcript'::character varying)::text, ('interviewer_note'::character varying)::text, ('resume'::character varying)::text, ('live_coding'::character varying)::text, ('take_home_assignment'::character varying)::text])))
 );
 
 ALTER TABLE ONLY public.evidences FORCE ROW LEVEL SECURITY;
@@ -347,7 +347,7 @@ CREATE TABLE public.interview_assessments (
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     CONSTRAINT interview_assessments_rating_check CHECK (((rating IS NULL) OR ((rating >= 1) AND (rating <= 5)))),
-    CONSTRAINT interview_assessments_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::character varying, 'submitted'::character varying, 'reviewed'::character varying, 'approved'::character varying])::text[])))
+    CONSTRAINT interview_assessments_status_check CHECK (((status)::text = ANY (ARRAY[('draft'::character varying)::text, ('submitted'::character varying)::text, ('reviewed'::character varying)::text, ('approved'::character varying)::text])))
 );
 
 ALTER TABLE ONLY public.interview_assessments FORCE ROW LEVEL SECURITY;
@@ -373,7 +373,7 @@ CREATE TABLE public.interviews (
     completed_at timestamp(6) without time zone,
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
-    CONSTRAINT interviews_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::character varying, 'completed'::character varying, 'cancelled'::character varying])::text[])))
+    CONSTRAINT interviews_status_check CHECK (((status)::text = ANY (ARRAY[('draft'::character varying)::text, ('completed'::character varying)::text, ('cancelled'::character varying)::text])))
 );
 
 ALTER TABLE ONLY public.interviews FORCE ROW LEVEL SECURITY;
@@ -529,6 +529,26 @@ CREATE TABLE public.sessions (
     user_agent character varying,
     id uuid DEFAULT uuidv7() CONSTRAINT sessions_uuid_id_not_null NOT NULL,
     user_id uuid NOT NULL
+);
+
+
+--
+-- Name: source_observations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.source_observations (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    source_key character varying NOT NULL,
+    transport character varying NOT NULL,
+    external_id character varying,
+    canonical_url text,
+    observed_at timestamp(6) without time zone NOT NULL,
+    content_digest character varying NOT NULL,
+    idempotency_key character varying NOT NULL,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
 );
 
 
@@ -832,6 +852,14 @@ ALTER TABLE ONLY public.schema_migrations
 
 ALTER TABLE ONLY public.sessions
     ADD CONSTRAINT sessions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: source_observations source_observations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.source_observations
+    ADD CONSTRAINT source_observations_pkey PRIMARY KEY (id);
 
 
 --
@@ -1431,6 +1459,27 @@ CREATE INDEX index_projects_on_organization_id ON public.projects USING btree (o
 --
 
 CREATE INDEX index_sessions_on_user_id ON public.sessions USING btree (user_id);
+
+
+--
+-- Name: index_source_observations_on_idempotency_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_source_observations_on_idempotency_key ON public.source_observations USING btree (idempotency_key);
+
+
+--
+-- Name: index_source_observations_on_source_external_observed; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_source_observations_on_source_external_observed ON public.source_observations USING btree (source_key, external_id, observed_at);
+
+
+--
+-- Name: index_source_observations_on_source_key_and_observed_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_source_observations_on_source_key_and_observed_at ON public.source_observations USING btree (source_key, observed_at);
 
 
 --
@@ -2254,6 +2303,7 @@ ALTER TABLE public.workspace_invitations ENABLE ROW LEVEL SECURITY;
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260901194000'),
 ('20260729000000'),
 ('20260723211000'),
 ('20260723210000'),
