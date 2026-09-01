@@ -97,7 +97,7 @@ export default function Dashboard({
               placeholder="Ask anything about recruiting…"
               className="placeholder:text-muted-foreground min-h-40 w-full resize-none bg-transparent px-6 py-5 text-base outline-none sm:min-h-48"
             />
-            <div className="flex flex-wrap items-center gap-2 border-t bg-muted/20 px-3 py-3 sm:px-4">
+            <div className="bg-muted/20 flex flex-wrap items-center gap-2 border-t px-3 py-3 sm:px-4">
               <Button
                 type="button"
                 variant="ghost"
@@ -150,14 +150,18 @@ export default function Dashboard({
               icon={BarChart3}
               title="Summarize the hiring pipeline"
               onClick={() =>
-                usePrompt("Summarize the hiring pipeline and highlight the next decisions.")
+                usePrompt(
+                  "Summarize the hiring pipeline and highlight the next decisions.",
+                )
               }
             />
             <AssistantAction
               icon={Mail}
               title="Draft recruiter follow-ups"
               onClick={() =>
-                usePrompt("Draft follow-up messages for candidates who need a response.")
+                usePrompt(
+                  "Draft follow-up messages for candidates who need a response.",
+                )
               }
             />
             <AssistantAction

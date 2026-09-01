@@ -21,18 +21,30 @@ export default function LanguageProficiencyBadge({
   const normalizedCode = code.toLowerCase()
 
   return (
-    <span className={cn("inline-flex items-center gap-2", className)} title={label ? `${normalizedCode.toUpperCase()} · ${label}` : normalizedCode.toUpperCase()}>
+    <span
+      className={cn("inline-flex items-center gap-2", className)}
+      title={
+        label
+          ? `${normalizedCode.toUpperCase()} · ${label}`
+          : normalizedCode.toUpperCase()
+      }
+    >
       <span
         aria-label={`${normalizedCode.toUpperCase()} language proficiency`}
         className={cn(
           "inline-flex size-8 shrink-0 items-center justify-center border text-xs font-bold shadow-sm",
           "[clip-path:polygon(50%_0%,94%_14%,94%_60%,50%_100%,6%_60%,6%_14%)]",
-          levelStyles[normalizedCode] ?? "border-muted-foreground/30 bg-muted text-foreground",
+          levelStyles[normalizedCode] ??
+            "border-muted-foreground/30 bg-muted text-foreground",
         )}
       >
-        <span className="-translate-y-[3px]">{normalizedCode.toUpperCase()}</span>
+        <span className="-translate-y-[3px]">
+          {normalizedCode.toUpperCase()}
+        </span>
       </span>
-      {label && <span className="-translate-y-[3px] text-sm font-medium">{label}</span>}
+      {label && (
+        <span className="-translate-y-[3px] text-sm font-medium">{label}</span>
+      )}
     </span>
   )
 }
