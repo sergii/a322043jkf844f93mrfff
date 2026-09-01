@@ -40,12 +40,10 @@ module MarketCatalog
     end
 
     def call
-      JobPosting.transaction do
-        posting = find_existing_posting
-        return create_posting unless posting
+      posting = find_existing_posting
+      return create_posting unless posting
 
-        posting.with_lock { refresh_posting(posting) }
-      end
+      posting.with_lock { refresh_posting(posting) }
     end
 
     private
