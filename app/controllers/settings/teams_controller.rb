@@ -13,7 +13,11 @@ class Settings::TeamsController < InertiaController
   end
 
   def create
-    invitation = WorkspaceInvitation.new(invitation_params.merge(invited_by: Current.user))
+    invitation = Current.organization.workspace_invitations.new(
+      email: params.require(:email),
+      role: params.require(:role),
+      invited_by: Current.user
+    )
 
     if invitation.save
       redirect_to settings_team_path, notice: "Invitation created for #{invitation.email}"
@@ -26,10 +30,6 @@ class Settings::TeamsController < InertiaController
 
   def require_workspace_admin
     head :not_found unless Current.membership&.workspace_admin?
-  end
-
-  def invitation_params
-    params.permit(:email, :role)
   end
 
   def member_props(membership)
