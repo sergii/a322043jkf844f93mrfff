@@ -16,7 +16,7 @@ module TalentProfile
       class_name: "TalentProfile::CandidateProfileVersionEvidence",
       inverse_of: :candidate_profile_version,
       dependent: :restrict_with_error
-    has_many :evidences,
+    has_many :candidate_evidences,
       through: :profile_version_evidences,
       source: :candidate_evidence
 

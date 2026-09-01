@@ -75,7 +75,7 @@ module TalentProfile
         origin: version.origin,
         accepted_by_user_id: typed_id("user", version.accepted_by_user_id),
         accepted_at: version.accepted_at,
-        evidence_ids: version.evidences.map(&:typed_id).freeze,
+        evidence_ids: version.candidate_evidences.map(&:typed_id).freeze,
         created_at: version.created_at
       }.freeze
     end
