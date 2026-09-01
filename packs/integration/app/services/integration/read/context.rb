@@ -44,7 +44,7 @@ module Integration
       end
 
       def to_h
-        ATTRIBUTES.to_h { |attribute| [attribute, public_send(attribute)] }
+        ATTRIBUTES.to_h { |attribute| [ attribute, public_send(attribute) ] }
       end
 
       # Credential references are retained internally for audit/provenance but are not echoed in response envelopes.

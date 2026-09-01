@@ -10,14 +10,14 @@ module Integration
         Contract.new(name: "applications.get", version: 1, request_kind: :get, response_kind: :resource)
       ].freeze
 
-      REGISTRY = LIST.to_h { |contract| [[contract.name, contract.version], contract] }.freeze
+      REGISTRY = LIST.to_h { |contract| [ [ contract.name, contract.version ], contract ] }.freeze
 
       module_function
 
       def fetch(name, version = 1)
         normalized_name = name.to_s
         normalized_version = Integer(version)
-        contract = REGISTRY[[normalized_name, normalized_version]]
+        contract = REGISTRY[[ normalized_name, normalized_version ]]
         return contract if contract
 
         raise Error::Unsupported.new(details: { name: normalized_name, version: normalized_version })

@@ -16,7 +16,7 @@ RSpec.describe Integration::Read::Dispatcher do
       raise @error if @error
 
       data = if query.contract.name == "openings.search"
-        { items: [{ id: "job_opening_opaque" }], next_cursor: "cursor-2" }
+        { items: [ { id: "job_opening_opaque" } ], next_cursor: "cursor-2" }
       else
         { id: query.input.fetch(:id) }
       end
@@ -77,7 +77,7 @@ RSpec.describe Integration::Read::Dispatcher do
       input: { query: "ruby", filters: { "remote" => true }, limit: 20 }
     )
     expect(outcome.data).to eq(
-      items: [{ id: "job_opening_opaque" }],
+      items: [ { id: "job_opening_opaque" } ],
       next_cursor: "cursor-2"
     )
     expect(outcome.provenance).to eq(adapter: "fake")

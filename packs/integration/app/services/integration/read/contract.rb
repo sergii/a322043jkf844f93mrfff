@@ -68,7 +68,7 @@ module Integration
       end
 
       def normalize_get_input(attributes)
-        assert_known_keys!(attributes, [:id])
+        assert_known_keys!(attributes, [ :id ])
         id = attributes[:id]
 
         unless id.is_a?(String) && !id.strip.empty?
