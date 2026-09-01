@@ -49,13 +49,7 @@ class ApplicationController < ActionController::Base
     membership = selected_membership
     return yield unless membership
 
-    Current.membership = membership
-    Current.organization = membership.organization
-    connection = ActiveRecord::Base.connection
-    connection.execute("SET app.current_organization = #{connection.quote(membership.organization_id)}")
-    yield
-  ensure
-    connection&.execute("RESET app.current_organization") if membership
+    WorkspaceContext.with(membership.organization, membership: membership) { yield }
   end
 
   def selected_membership

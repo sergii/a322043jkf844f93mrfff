@@ -5,10 +5,15 @@ module OrganizationScoped
 
   included do
     belongs_to :organization
-    default_scope { where(organization_id: Current.organization&.id) }
 
     before_validation :assign_current_organization, on: :create
     validates :organization_id, presence: true
+  end
+
+  class_methods do
+    def for_organization(organization)
+      where(organization_id: organization.id)
+    end
   end
 
   private
