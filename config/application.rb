@@ -19,9 +19,9 @@ module Lmx
     config.load_defaults 8.1
     config.autoload_lib(ignore: %w[assets tasks])
 
-    # Bounded-context code lives under packs/<context>/app. Keep those paths in
-    # Rails' eager-load graph so Zeitwerk and Packwerk resolve the same constants.
-    config.paths.add "packs", glob: "*/app", eager_load: true
+    # Treat the conventional directories inside every pack as Rails autoload
+    # roots, matching the constants used before the strangler migration.
+    config.paths.add "packs", glob: "*/app/{*,*/concerns}", eager_load: true
 
     # PostgreSQL RLS policies, functions, and other database-enforced security
     # objects are not represented by schema.rb.
