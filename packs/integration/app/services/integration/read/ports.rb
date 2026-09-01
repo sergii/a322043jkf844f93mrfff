@@ -1,0 +1,33 @@
+# frozen_string_literal: true
+
+module Integration
+  module Read
+    module Ports
+      class Result
+        attr_reader :data, :provenance
+
+        def initialize(data:, provenance: {})
+          unless provenance.is_a?(Hash)
+            raise Error::ContractViolation.new("provenance must be an object")
+          end
+
+          @data = data
+          @provenance = provenance.dup.freeze
+          freeze
+        end
+      end
+
+      class Query
+        def call(_query)
+          raise Error::NotImplemented
+        end
+      end
+
+      class Authorization
+        def authorize(_query)
+          raise Error::NotImplemented, "Read authorization port is not implemented"
+        end
+      end
+    end
+  end
+end
