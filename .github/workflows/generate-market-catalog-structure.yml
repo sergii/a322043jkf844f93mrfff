@@ -45,7 +45,7 @@ jobs:
           bundler-cache: true
       - name: Load current structure and apply pending migrations
         run: |
-          bin/rails db:drop db:create db:structure:load db:migrate
+          bin/rails db:drop db:create db:schema:load db:migrate
       - name: Commit generated structure
         run: |
           if git diff --quiet -- db/structure.sql; then
