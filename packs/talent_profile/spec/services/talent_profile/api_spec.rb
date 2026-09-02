@@ -69,6 +69,28 @@ RSpec.describe TalentProfile::Api do
     expect { record.destroy! }.to raise_error(ActiveRecord::RecordNotDestroyed)
   end
 
+  it "returns the latest canonical profile version as an immutable public snapshot" do
+    candidate = WorkspaceContext.with(workspace) do
+      described_class.create_candidate(first_name: "Latest", last_name: "Profile", profile: { skills: [ "Ruby" ] })
+    end
+    latest = WorkspaceContext.with(workspace) do
+      described_class.create_profile_version(
+        candidate_id: candidate.dig(:candidate, :id),
+        profile: { skills: [ "Ruby", "Rails" ], target: "Senior Rails" }
+      )
+    end
+
+    fetched = WorkspaceContext.with(workspace) do
+      described_class.fetch_latest_profile(candidate_id: candidate.dig(:candidate, :id))
+    end
+
+    expect(fetched).to eq(latest)
+    expect(fetched.fetch(:version_number)).to eq(2)
+    expect(fetched.fetch(:profile)).to eq("skills" => [ "Ruby", "Rails" ], "target" => "Senior Rails")
+    expect(fetched).to be_frozen
+    expect(fetched.fetch(:profile)).to be_frozen
+  end
+
   it "requires explicit user acceptance before agent-derived data becomes canonical" do
     candidate = WorkspaceContext.with(workspace) do
       described_class.create_candidate(first_name: "Grace", last_name: "Hopper")
@@ -108,6 +130,18 @@ RSpec.describe TalentProfile::Api do
         described_class.fetch_candidate(candidate_id: candidate.dig(:candidate, :id))
       end
     end.to raise_error(described_class::NotFound, "candidate not found")
+  end
+
+  it "rejects cross-workspace profile access through the stable public error" do
+    candidate = WorkspaceContext.with(workspace) do
+      described_class.create_candidate(first_name: "Profile", last_name: "Workspace", profile: { skills: [ "Ruby" ] })
+    end
+
+    expect do
+      WorkspaceContext.with(other_workspace) do
+        described_class.fetch_latest_profile(candidate_id: candidate.dig(:candidate, :id))
+      end
+    end.to raise_error(described_class::NotFound, "candidate profile not found")
   end
 
   it "normalizes invalid Candidate identifiers to the stable public error" do
