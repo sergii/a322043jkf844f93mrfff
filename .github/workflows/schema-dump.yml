@@ -1,0 +1,46 @@
+name: Schema Dump
+
+on:
+  pull_request:
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    env:
+      RAILS_ENV: test
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: lmx
+      POSTGRES_PASSWORD: lmx_test
+      POSTGRES_TEST_DATABASE: lmx_test
+    services:
+      postgres:
+        image: postgres:18.4
+        env:
+          POSTGRES_DB: lmx_test
+          POSTGRES_USER: lmx
+          POSTGRES_PASSWORD: lmx_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lmx -d lmx_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y postgresql-client-18
+      - name: Checkout code
+        uses: actions/checkout@v7
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Rebuild schema through migrations
+        run: bin/rails db:drop db:create db:migrate
+      - name: Upload generated structure
+        uses: actions/upload-artifact@v7
+        with:
+          name: generated-structure
+          path: db/structure.sql
+          if-no-files-found: error
