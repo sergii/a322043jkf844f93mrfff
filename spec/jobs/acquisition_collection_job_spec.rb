@@ -4,14 +4,17 @@ require "rails_helper"
 require "yaml"
 
 RSpec.describe AcquisitionCollectionJob, type: :job do
-  it "routes each scheduled source through its public acquisition API" do
+  it "routes supported sources through their public acquisition APIs" do
     allow(Acquisition::Dou).to receive(:collect).and_return(:dou_result)
     allow(Acquisition::Djinni).to receive(:collect).and_return(:djinni_result)
+    allow(Acquisition::RobotaUa).to receive(:collect).and_return(:robota_result)
 
     expect(described_class.new.perform("dou")).to eq(:dou_result)
     expect(described_class.new.perform("djinni")).to eq(:djinni_result)
+    expect(described_class.new.perform("robota_ua")).to eq(:robota_result)
     expect(Acquisition::Dou).to have_received(:collect).once
     expect(Acquisition::Djinni).to have_received(:collect).once
+    expect(Acquisition::RobotaUa).to have_received(:collect).once
   end
 
   it "fails explicitly for an unsupported source" do
@@ -19,7 +22,7 @@ RSpec.describe AcquisitionCollectionJob, type: :job do
       .to raise_error(ArgumentError, /unsupported acquisition source/)
   end
 
-  it "schedules DOU and Djinni independently in production" do
+  it "schedules only sources with an explicit unattended collection policy in production" do
     production = YAML.safe_load_file(
       Rails.root.join("config/recurring.yml"),
       aliases: true
@@ -37,5 +40,6 @@ RSpec.describe AcquisitionCollectionJob, type: :job do
       "args" => [ "djinni" ],
       "schedule" => "every 10 minutes"
     )
+    expect(production).not_to have_key("acquisition_robota_ua")
   end
 end
