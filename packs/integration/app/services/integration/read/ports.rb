@@ -35,6 +35,12 @@ module Integration
         end
       end
 
+      class CredentialSource
+        def resolve(_context)
+          raise Error::NotImplemented, "Read credential source is not implemented"
+        end
+      end
+
       class WorkspaceScope
         def call(_context, &_block)
           raise Error::NotImplemented, "Read workspace scope is not implemented"
