@@ -21,7 +21,7 @@ Integration::Read::Ports::Query
 owning package public query implementation
 ```
 
-The package intentionally has no Packwerk dependencies. Typed IDs are treated as opaque public strings. The package does not parse them through ActiveRecord or depend on Market Catalog, Talent Profile, or Personal CRM implementation classes.
+Typed IDs are treated as opaque public strings by the Integration protocol. Production composition declares explicit Packwerk dependencies only on bounded contexts whose public application APIs it calls: Workspace, Talent Profile, Market Catalog, and Intelligence. Integration does not parse those identifiers through another package's ActiveRecord models or call private constants.
 
 ## Versioned v1 contracts
 
@@ -30,9 +30,12 @@ The package intentionally has no Packwerk dependencies. Typed IDs are treated as
 | `openings.search.v1` | optional `query`, generic `filters`, optional `cursor`, optional positive `limit` | object with `items` array and optional `next_cursor` |
 | `openings.get.v1` | required opaque `id` | extensible resource object |
 | `candidates.get.v1` | required opaque `id` | extensible resource object |
+| `matches.get.v1` | required opaque `id` | versioned MatchAssessment resource from Intelligence |
 | `applications.get.v1` | required opaque `id` | extensible resource object |
 
-The resource fields are intentionally not specified here yet. Their owning bounded contexts must publish stable DTOs before Integration hard-codes domain fields.
+Resource fields remain owned by their bounded contexts. Integration validates the envelope shape but does not duplicate Market Catalog, Talent Profile, Intelligence, or Personal CRM domain schemas.
+
+`matches.get.v1` is deliberately a resource lookup by MatchAssessment ID. Ranked or top-match retrieval should be introduced later as a distinct collection/query contract rather than changing the meaning of this v1 operation.
 
 ## Query context and provenance
 
@@ -143,16 +146,16 @@ MCP and HTTP adapters can map these codes to their own transport-specific error/
 
 Authentication is represented by `principal` plus a credential reference in the query context. Authorization is a separate port: `Integration::Read::Ports::Authorization`.
 
-The default authorization port is intentionally not permissive. Until a concrete adapter is wired to the workspace authorization foundation, it returns `not_implemented`. A concrete adapter may use ActionPolicy or another authorization mechanism, but that implementation detail does not belong in the core Integration protocol.
+Production-shaped composition resolves capabilities from a server-side credential source and checks the contract's required capability before routing the query. `matches.get.v1` requires `read:matches`. Client tool arguments never grant capabilities.
 
 ## Intentionally not implemented here
 
 - MCP server/runtime or MCP gem integration
 - HTTP routes/controllers
-- direct ActiveRecord queries
-- Market Catalog, Candidate, or Application models
-- concrete opening/candidate/application DTO fields owned by parallel packages
+- direct ActiveRecord queries across bounded contexts
+- ranked/top MatchAssessment query semantics
+- canonical Personal CRM implementation for `applications.get`
 - Transactional Inbox/Outbox write handling
 - write command metadata such as `command_id`, `idempotency_key`, and `causation_id`
 
-Those pieces can be plugged in later without changing the v1 tool/query names or the core query context/error semantics.
+Those pieces can be plugged in later without changing the existing v1 tool/query names or the core query context/error semantics.
