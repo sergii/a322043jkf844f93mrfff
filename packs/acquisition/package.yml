@@ -4,4 +4,7 @@ dependencies:
 metadata:
   bounded_context: acquisition
   owns:
+    - SourceRun
+    - RawPayload
+    - IngestionRecord
     - SourceObservation
