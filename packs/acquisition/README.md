@@ -50,3 +50,44 @@ Acquisition::SourceRuns.succeed(source_run:, observed_count: 0, ...)
 `RecordSourceObservation` may also receive raw input directly as a convenience. For collectors that must preserve evidence even when parsing fails, record the `RawPayload` first and then process it.
 
 Failures use `Acquisition::SourceRuns.fail`. Start, completion, raw capture, ingestion, and observation recording are idempotent for the same identity. Reusing an idempotency identity with conflicting evidence raises an explicit conflict rather than silently rewriting history.
+
+## DOU Phase 0 vertical slice
+
+`Acquisition::Dou.collect` is the first source-specific collector. The canonical DOU acquisition order is RSS first and ordinary public HTML second:
+
+```text
+rss       -> https://jobs.dou.ua/vacancies/feeds/  -> persisted transport `rss`
+http_html -> https://jobs.dou.ua/vacancies/        -> persisted transport `http_scrape`
+```
+
+RSS is the default because DOU exposes a first-party vacancy feed with stable item URLs and `pubDate`, making frequent polling cheaper and less brittle than page parsing. HTML remains an explicit fallback and provides richer listing-card fields such as company and location text. Browser acquisition stays configured only as a later fallback/evaluation path; this collector does not use DOU's XHR load endpoint, login, or anti-bot bypasses.
+
+A single `SourceRun` always represents one acquisition transport. The collector does not silently switch from RSS to HTML after a failure because that would blur source-health and replay provenance. A scheduler may start a separate fallback HTML run when policy requires it.
+
+```ruby
+# Canonical primary strategy from config/sources.yml: RSS
+result = Acquisition::Dou.collect(
+  search: "Ruby",
+  run_key: "dou:rss:ruby:2026-09-02T20:00:00Z",
+  started_at: Time.current
+)
+
+# Explicit fallback transport
+fallback = Acquisition::Dou.collect(
+  search: "Ruby",
+  strategy: "http_html",
+  run_key: "dou:html:ruby:2026-09-02T20:00:00Z",
+  started_at: Time.current
+)
+```
+
+Both adapters persist the exact raw response before parsing, record an `IngestionRecord` even for zero-result runs, and emit immutable `SourceObservation` rows only for explicit source facts. RSS `pubDate` is preserved as `source_published_at`; no company/location inference is fabricated from feed titles. Retrying the exact same run identity returns the prior terminal result without another HTTP request or duplicate evidence. Parser failures still preserve raw material and ingestion provenance.
+
+For an operator-triggered run:
+
+```sh
+bin/rails lmx:acquisition:dou SEARCH=Ruby
+bin/rails lmx:acquisition:dou SEARCH=Ruby STRATEGY=http_html
+```
+
+Set `RUN_KEY` when an external scheduler needs a stable retry identity.
