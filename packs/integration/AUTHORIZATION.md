@@ -7,7 +7,8 @@ Integration read authorization is capability-based at the agent-facing boundary.
 | Contracts | Capability |
 | --- | --- |
 | `openings.search.v1`, `openings.get.v1` | `read:openings` |
-| `candidates.get.v1` | `read:candidates` |
+| `candidates.get.v1`, `candidates.profile.v1` | `read:candidates` |
+| `matches.get.v1` | `read:matches` |
 | `applications.get.v1` | `read:applications` |
 
 The required capability is metadata on the versioned `Integration::Read::Contract`.
@@ -83,6 +84,7 @@ Workspace authorization facts + credential scope
                     v
              read:openings
              read:candidates
+             read:matches
 ```
 
 Agent-facing contracts therefore remain stable when the internal role model changes.
