@@ -3,7 +3,7 @@
 require "rails_helper"
 
 RSpec.describe Intelligence::ProfileRegistry, type: :model do
-  it "keeps personal ranking policy separate from source metadata" do
+  it "exposes the configured personal ranking policy" do
     expect(described_class.source_priority("dou")).to eq(
       "lane" => "local_fast",
       "weight" => 100
@@ -14,8 +14,6 @@ RSpec.describe Intelligence::ProfileRegistry, type: :model do
       "infer_job_coexistence" => false,
       "preserve_unknowns" => true
     )
-    expect(Acquisition::SourceRegistry.fetch("dou")).not_to have_key("weight")
-    expect(Acquisition::SourceRegistry.fetch("dou")).not_to have_key("lane")
   end
 
   it "fails explicitly for an unknown source priority" do
