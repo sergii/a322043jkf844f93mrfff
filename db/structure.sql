@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict wfK2YvPCrODqbjpBjVEtEsgVwrOVd1esuQNonehnafLzMVD6bfKpcGe3aYcpGVo
+\restrict 09V5mGpKFQWdGgxYen3VnWXYuKRiuUH0ROC0Z2WZPEMbA4qsvKDyb5Jyu9puWfO
 
 -- Dumped from database version 18.4 (Debian 18.4-1.pgdg13+1)
 -- Dumped by pg_dump version 18.4 (Debian 18.4-1.pgdg13+1)
@@ -3538,7 +3538,7 @@ ALTER TABLE public.workspace_invitations ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict wfK2YvPCrODqbjpBjVEtEsgVwrOVd1esuQNonehnafLzMVD6bfKpcGe3aYcpGVo
+\unrestrict 09V5mGpKFQWdGgxYen3VnWXYuKRiuUH0ROC0Z2WZPEMbA4qsvKDyb5Jyu9puWfO
 
 
 SET search_path TO "$user", public;
