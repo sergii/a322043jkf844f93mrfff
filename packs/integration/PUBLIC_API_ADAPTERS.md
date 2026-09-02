@@ -10,13 +10,13 @@ Integration query adapters consume narrow public application APIs from owning bo
 fetch_candidate(candidate_id:)
 ```
 
-The current Talent Profile public API provides exactly that operation and returns an immutable snapshot with public typed identifiers.
+The Talent Profile public API provides exactly that operation and returns an immutable snapshot with public typed identifiers.
 
-The adapter deliberately receives the API object through composition instead of referencing `TalentProfile::Api` as a constant. This keeps the Integration contract independently testable while the parallel package and integration branch continue to move.
+The adapter deliberately receives the API object through composition instead of referencing `TalentProfile::Api` as a constant. This keeps the Integration contract independently testable and avoids coupling the adapter implementation to package internals.
 
 ## Opening read adapters
 
-`Integration::Read::Adapters::OpeningsSearch` and `Integration::Read::Adapters::OpeningsGet` define the Integration-side API shape expected from the future Market Catalog public read surface:
+`Integration::Read::Adapters::OpeningsSearch` and `Integration::Read::Adapters::OpeningsGet` consume an injected public API with:
 
 ```ruby
 search_openings(**attributes)
@@ -27,7 +27,7 @@ fetch_opening(opening_id:)
 
 `opening_id` remains an opaque public identifier. Integration never parses it into an ActiveRecord primary key.
 
-Market Catalog currently has no public application API implementation. These adapters are therefore contract-first seams backed only by fake adapter tests until the owning package publishes its API.
+`MarketCatalog::Api` now provides this public read surface, so these adapters can be composed against the owning bounded context without private model access.
 
 ## Application read adapter
 
@@ -37,13 +37,19 @@ Market Catalog currently has no public application API implementation. These ada
 fetch_application(application_id:)
 ```
 
-`application_id` remains opaque. Personal CRM currently has no public application API implementation, so this adapter is also intentionally contract-first.
+`application_id` remains opaque. Personal CRM currently has no public application API implementation, so this adapter remains intentionally contract-first.
 
 ## Workspace execution scope
 
-Owning package reads may require an established current workspace. Integration represents this requirement as `Integration::Read::Ports::WorkspaceScope`.
+Owning package reads may require an established current workspace and PostgreSQL tenant scope. Integration represents this requirement as `Integration::Read::Ports::WorkspaceScope`.
 
-A future Rails composition adapter can resolve the opaque `context.workspace_id`, establish `WorkspaceContext`, and yield to the public API call:
+`Integration::Read::Adapters::PublicApiWorkspaceScope` implements that port through an injected Workspace public API that responds to:
+
+```ruby
+with_workspace(workspace_id:) { ... }
+```
+
+The adapter passes `context.workspace_id` through unchanged. It never resolves `Organization`, manipulates `Current`, or sets PostgreSQL session state itself. The Workspace bounded context owns those responsibilities behind `Workspace::Api.with_workspace`.
 
 ```ruby
 workspace_scope.call(context) do
@@ -51,15 +57,17 @@ workspace_scope.call(context) do
 end
 ```
 
-The same scope wraps opening and application reads. The MCP adapter must not establish database tenant state itself. Authentication/workspace resolution belongs to the server composition layer before domain reads execute.
+The same scope can wrap opening and application reads. MCP, HTTP, and CLI adapters therefore remain unaware of Rails tenant implementation details.
+
+The Workspace scope adapter also accepts `not_found_errors:` through composition. Configured owning-package lookup errors are normalized to `Integration::Read::Error::NotFound`; unexpected exceptions are re-raised.
 
 ## Not-found mapping
 
-Owning public APIs may expose framework-specific exceptions while their implementations mature. Integration does not import those exception classes directly.
+Owning public APIs may expose package-specific or framework-specific exceptions while implementations mature. Integration does not import those exception classes directly.
 
-The get adapters accept `not_found_errors:` during composition and map only those configured exception classes to `Integration::Read::Error::NotFound`. Any unexpected exception is re-raised rather than hidden behind a misleading stable error.
+Read adapters and the Workspace scope adapter accept `not_found_errors:` during composition and map only those configured exception classes to `Integration::Read::Error::NotFound`. Any unexpected exception is re-raised rather than hidden behind a misleading stable error.
 
-For the current Talent Profile implementation, the composition layer can configure its public API not-found behavior without making Integration depend on ActiveRecord. Market Catalog and Personal CRM can use the same seam when their public APIs exist.
+This keeps the Integration package independent from ActiveRecord and from concrete owning-package error classes while preserving stable protocol errors at the external boundary.
 
 ## Composition
 
@@ -71,30 +79,36 @@ candidates.get.v1
        v
 Integration::Read::Adapters::CandidatesGet
        |
-       +--> WorkspaceScope
+       +--> Integration::Read::Adapters::PublicApiWorkspaceScope
+       |          |
+       |          v
+       |     Workspace public API
        |
        v
-TalentProfile public API
+Talent Profile public API
 
 openings.search.v1 / openings.get.v1
        |
        v
 Integration::Read::Adapters::OpeningsSearch / OpeningsGet
        |
-       +--> WorkspaceScope
+       +--> Integration::Read::Adapters::PublicApiWorkspaceScope
+       |          |
+       |          v
+       |     Workspace public API
        |
        v
-Market Catalog public API (pending)
+Market Catalog public API
 
 applications.get.v1
        |
        v
 Integration::Read::Adapters::ApplicationsGet
        |
-       +--> WorkspaceScope
+       +--> Integration::Read::Adapters::PublicApiWorkspaceScope
        |
        v
 Personal CRM public API (pending)
 ```
 
-This keeps MCP, HTTP, and CLI adapters stable while each bounded context can implement its own persistence and domain rules behind a narrow public application API.
+This keeps MCP, HTTP, and CLI adapters stable while each bounded context implements persistence and domain rules behind a narrow public application API.
