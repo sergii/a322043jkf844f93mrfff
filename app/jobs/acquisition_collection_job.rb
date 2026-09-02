@@ -35,6 +35,9 @@ class AcquisitionCollectionJob < ApplicationJob
       raise ArgumentError, "unsupported acquisition source #{source_key.inspect}"
     end
 
-    collector.collect
+    queries = Acquisition::QueryPolicy.source_queries(source_key)
+    return collector.collect if queries.empty?
+
+    queries.map { |search| collector.collect(search:) }
   end
 end
