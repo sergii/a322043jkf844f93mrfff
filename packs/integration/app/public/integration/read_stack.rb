@@ -31,6 +31,11 @@ module Integration
             workspace_scope:,
             not_found_errors: [ TalentProfile::Api::NotFound ]
           ),
+          "candidates.profile.v1" => Read::Adapters::CandidateProfileGet.new(
+            candidate_api:,
+            workspace_scope:,
+            not_found_errors: [ TalentProfile::Api::NotFound ]
+          ),
           "matches.get.v1" => Read::Adapters::MatchesGet.new(
             match_api:,
             workspace_scope:,

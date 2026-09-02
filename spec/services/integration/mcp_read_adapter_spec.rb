@@ -47,13 +47,21 @@ RSpec.describe Integration::Mcp::ReadAdapter, type: :model do
     tools = adapter.tools
 
     expect(tools.map { |tool| tool.fetch(:name) }).to eq(
-      [ "openings.search", "openings.get", "candidates.get", "matches.get", "applications.get" ]
+      [
+        "openings.search",
+        "openings.get",
+        "candidates.get",
+        "candidates.profile",
+        "matches.get",
+        "applications.get"
+      ]
     )
     expect(tools.find { |tool| tool[:name] == "openings.search" }.fetch(:inputSchema)).to include(
       "type" => "object",
       "additionalProperties" => false
     )
     expect(tools.find { |tool| tool[:name] == "candidates.get" }.dig(:inputSchema, "required")).to eq([ "id" ])
+    expect(tools.find { |tool| tool[:name] == "candidates.profile" }.dig(:inputSchema, "required")).to eq([ "id" ])
   end
 
   it "maps a successful read outcome to MCP structured content" do

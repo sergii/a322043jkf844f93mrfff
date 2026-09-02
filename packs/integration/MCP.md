@@ -28,8 +28,11 @@ Current tools:
 - `openings.search`
 - `openings.get`
 - `candidates.get`
+- `candidates.profile`
 - `matches.get`
 - `applications.get`
+
+`candidates.profile` returns the latest canonical CandidateProfileVersion for the supplied Candidate ID through `TalentProfile::Api`. It uses the same `read:candidates` capability as candidate identity reads.
 
 `applications.get` is a declared contract but remains intentionally unregistered until canonical Personal CRM exists. The other tools above have production-shaped public-API adapters.
 

@@ -7,6 +7,7 @@ module Integration
         "openings.search" => "Search job openings visible to the authorized LMX workspace.",
         "openings.get" => "Retrieve one job opening by its opaque public identifier.",
         "candidates.get" => "Retrieve one candidate by its opaque public identifier.",
+        "candidates.profile" => "Retrieve the latest canonical profile version for one candidate.",
         "matches.get" => "Retrieve one versioned match assessment by its opaque public identifier.",
         "applications.get" => "Retrieve one application by its opaque public identifier."
       }.freeze

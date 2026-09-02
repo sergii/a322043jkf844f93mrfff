@@ -20,15 +20,27 @@ RSpec.describe Integration::ReadStack do
 
   let(:candidate_api) do
     Class.new do
-      attr_reader :candidate_ids
+      attr_reader :candidate_ids, :profile_candidate_ids
 
       def initialize
         @candidate_ids = []
+        @profile_candidate_ids = []
       end
 
       def fetch_candidate(candidate_id:)
         @candidate_ids << candidate_id
         { id: candidate_id, first_name: "Ada", last_name: "Lovelace" }
+      end
+
+      def fetch_latest_profile(candidate_id:)
+        @profile_candidate_ids << candidate_id
+        {
+          id: "candidate_profile_version_opaque",
+          candidate_id:,
+          version_number: 3,
+          profile: { "skills" => [ "Ruby", "Rails" ] },
+          content_digest: "a" * 64
+        }
       end
     end.new
   end
@@ -136,6 +148,28 @@ RSpec.describe Integration::ReadStack do
     expect(candidate_api.candidate_ids).to eq([ "candidate_opaque" ])
     expect(workspace_api.workspace_ids).to eq([ "org_opaque" ])
     expect(credential_source.contexts).to eq([ context ])
+  end
+
+  it "composes candidates.profile through the latest Talent Profile snapshot" do
+    result = adapter.call(
+      name: "candidates.profile",
+      arguments: { id: "candidate_opaque" },
+      context:
+    )
+
+    expect(result[:isError]).to be(false)
+    expect(result.dig(:structuredContent, :data)).to include(
+      id: "candidate_profile_version_opaque",
+      candidate_id: "candidate_opaque",
+      version_number: 3,
+      profile: { "skills" => [ "Ruby", "Rails" ] },
+      content_digest: "a" * 64
+    )
+    expect(result.dig(:structuredContent, :meta, :provenance)).to eq(
+      adapter: "talent_profile.public_api"
+    )
+    expect(candidate_api.profile_candidate_ids).to eq([ "candidate_opaque" ])
+    expect(workspace_api.workspace_ids).to eq([ "org_opaque" ])
   end
 
   it "composes both Market Catalog read contracts" do

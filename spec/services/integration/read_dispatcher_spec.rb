@@ -59,6 +59,7 @@ RSpec.describe Integration::Read::Dispatcher do
       "openings.search.v1",
       "openings.get.v1",
       "candidates.get.v1",
+      "candidates.profile.v1",
       "matches.get.v1",
       "applications.get.v1"
     )
