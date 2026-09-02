@@ -30,6 +30,10 @@ module MarketCatalog
       class_name: "MarketCatalog::ResolutionDecision",
       inverse_of: :job_posting,
       dependent: :restrict_with_exception
+    has_many :snapshots,
+      class_name: "MarketCatalog::PostingSnapshot",
+      inverse_of: :job_posting,
+      dependent: :restrict_with_exception
 
     normalizes :source_key, with: -> { _1.strip.downcase }
     normalizes :external_id, with: -> { _1.strip.presence }
