@@ -28,7 +28,10 @@ Current tools:
 - `openings.search`
 - `openings.get`
 - `candidates.get`
+- `matches.get`
 - `applications.get`
+
+`applications.get` is a declared contract but remains intentionally unregistered until canonical Personal CRM exists. The other tools above have production-shaped public-API adapters.
 
 The adapter returns the complete Integration outcome as MCP `structuredContent`, mirrors it as JSON text content for model consumption, and sets `isError` for stable contract failures.
 
@@ -41,9 +44,8 @@ Still intentionally absent:
 - MCP HTTP or stdio server lifecycle
 - protocol negotiation/discovery implementation
 - authentication middleware
-- concrete capability resolver backed by workspace authorization/credential state
 - direct ActiveRecord access
-- concrete owning-package query implementations
+- canonical Personal CRM query implementation
 - write tools and Transactional Inbox/Outbox handling
 
 Those are composition/runtime concerns and should be added without changing the shared read contract semantics.
