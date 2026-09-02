@@ -10,7 +10,7 @@ Three workspace-scoped persistence concepts are provided:
 - `platform_domain_events` - immutable business-event envelopes with optimistic aggregate versioning and command/provenance/evidence metadata.
 - `platform_outbox_messages` - integration-message delivery records appended in the same database transaction as their owning domain event.
 
-All three tables enable and force PostgreSQL row-level security through the same `app.current_organization` workspace setting used by the rest of LMX.
+All three tables enable and force PostgreSQL row-level security through the same `app.current_organization` workspace setting used by the rest of LMX. The committed `db/structure.sql` is generated from the reliability migration with the repository's PostgreSQL baseline rather than maintained as hand-written schema SQL.
 
 ## Public API
 
