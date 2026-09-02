@@ -1,0 +1,65 @@
+name: Market Catalog verify
+
+on:
+  push:
+    branches: [ feat/market-catalog-core ]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      RAILS_ENV: test
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: lmx
+      POSTGRES_PASSWORD: lmx_test
+      POSTGRES_TEST_DATABASE: lmx_test
+    services:
+      postgres:
+        image: postgres:18.4
+        env:
+          POSTGRES_DB: lmx_test
+          POSTGRES_USER: lmx
+          POSTGRES_PASSWORD: lmx_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lmx -d lmx_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Use PostgreSQL 18 pg_dump
+        run: |
+          mkdir -p "$RUNNER_TEMP/pg18-bin"
+          cat > "$RUNNER_TEMP/pg18-bin/pg_dump" <<'SH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          output_file=""
+          args=()
+          while (( "$#" )); do
+            if [[ "$1" == "--file" ]]; then
+              output_file="$2"
+              shift 2
+            else
+              args+=("$1")
+              shift
+            fi
+          done
+          container_id="$(docker ps --filter ancestor=postgres:18.4 --format '{{.ID}}' | head -n 1)"
+          docker exec "$container_id" pg_dump -U lmx "${args[@]}" > "$output_file"
+          SH
+          chmod +x "$RUNNER_TEMP/pg18-bin/pg_dump"
+          echo "$RUNNER_TEMP/pg18-bin" >> "$GITHUB_PATH"
+      - name: Load integrated schema and apply Market Catalog migrations
+        run: |
+          bin/rails db:schema:load
+          bin/rails db:migrate
+      - name: Run Market Catalog specs
+        run: bin/rspec spec/models/market_catalog_core_spec.rb spec/services/market_catalog
