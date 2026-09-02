@@ -29,6 +29,23 @@ A `PostingSnapshot` is an immutable normalized view of one source observation fo
 
 Repeated processing of the same source observation is idempotent when normalized content is identical. Different normalized output for the same observation is treated as a conflict rather than silently rewriting historical evidence.
 
+## Lifecycle reconciliation
+
+Evidence capture and canonical lifecycle mutation are separate operations.
+
+`MarketCatalog::ReconcilePostingLifecycle` recomputes the current posting state from immutable posting snapshots. It is deliberately replay-safe and conservative:
+
+- `unknown` evidence does not change canonical lifecycle;
+- one or more current `missing` observations produce `missing`, not `closed`;
+- `explicit_closed` evidence closes the posting even if later observations in the same absence run are merely `missing`;
+- a newer confirmed `present` observation clears absence state;
+- the first confirmed presence after an absence projects `reappeared`, while a later continuous presence returns to `present`;
+- out-of-order older absence evidence cannot override a newer confirmed presence already recorded on the posting.
+
+Reconciliation cascades to the linked `JobOpening`. An opening stays `open` while any linked posting is currently present, becomes `closed` only when all linked postings are closed, and otherwise remains conservatively `missing` or `probably_closed`. Reappearance on any linked posting can project the opening as `reopened`.
+
+Posting-to-opening link, relink, and unlink operations also recompute the affected opening projections. The reconciliation services are deterministic projections over retained evidence, so they can safely be rerun after replay, repair, or parser improvements.
+
 ## Legacy donor boundary
 
 The root donor classes `Job`, `JobPosting`, `ClientCompany`, and `Project` implement the old staffing workflow. They are not the canonical LMX market model. During adoption they remain available to legacy screens while new LMX code uses the namespaced Market Catalog models and `market_catalog_*` tables.
@@ -43,6 +60,7 @@ Initial mutation capabilities are:
 - `create_opening`
 - `record_posting`
 - `record_posting_snapshot`
+- `reconcile_posting_lifecycle`
 - `resolve_posting_opening_link`
 
 Initial read capabilities are:
@@ -52,6 +70,7 @@ Initial read capabilities are:
 - `fetch_posting`
 - `fetch_posting_snapshot`
 - `fetch_posting_history`
+- `search_openings`
 
 Identity resolution follows the canonical deterministic evidence order: source external ID first, then canonical posting URL, then canonical application URL. Company plus title is never sufficient to merge postings or openings.
 
