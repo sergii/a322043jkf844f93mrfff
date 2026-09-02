@@ -39,6 +39,11 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
+      - name: Install PostgreSQL 18 client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y postgresql-client-18
+          echo "/usr/lib/postgresql/18/bin" >> "$GITHUB_PATH"
       - name: Load canonical SQL schema
         run: bin/rails db:schema:load
       - name: Apply pending migrations and dump structure
@@ -51,6 +56,8 @@ jobs:
           grep -q "candidate_evidences" db/structure.sql
           grep -q "candidate_profile_version_evidences" db/structure.sql
           grep -q "20260902011700" db/structure.sql
+      - name: Run Talent Profile specs
+        run: bin/rspec spec/services/talent_profile/api_spec.rb spec/database/talent_profile_row_level_security_spec.rb
       - name: Commit generated structure
         run: |
           git config user.name "github-actions[bot]"
