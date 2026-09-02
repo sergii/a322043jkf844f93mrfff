@@ -33,6 +33,7 @@ Other packages should use only `TalentProfile::Api` for Phase 0 operations:
 - `record_evidence`
 - `create_profile_version`
 - `fetch_candidate`
-- `fetch_profile_version`
+- `fetch_latest_profile` - latest canonical `CandidateProfileVersion` for a Candidate
+- `fetch_profile_version` - one exact historical profile version
 
-The API accepts and returns TypeIDs and immutable snapshots rather than package-private ActiveRecord models.
+The API accepts and returns TypeIDs and immutable snapshots rather than package-private ActiveRecord models. Latest-profile lookup remains distinct from exact historical-version lookup so callers can choose current convenience or reproducible provenance explicitly.
