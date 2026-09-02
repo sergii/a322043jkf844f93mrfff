@@ -13,3 +13,15 @@ production:
   clear_solid_queue_finished_jobs:
     command: "SolidQueue::Job.clear_finished_in_batches(sleep_between_batches: 0.3)"
     schedule: every hour at minute 12
+
+  acquisition_dou:
+    class: AcquisitionCollectionJob
+    queue: acquisition
+    args: [ "dou" ]
+    schedule: every 10 minutes
+
+  acquisition_djinni:
+    class: AcquisitionCollectionJob
+    queue: acquisition
+    args: [ "djinni" ]
+    schedule: every 10 minutes
