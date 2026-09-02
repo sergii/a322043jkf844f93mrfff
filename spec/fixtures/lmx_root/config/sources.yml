@@ -45,6 +45,25 @@ sources:
       terms_review: pending
       rate_limit: unknown
 
+  - id: work_ua
+    name: Work.ua
+    base_url: https://www.work.ua/
+    enabled: true
+    market: ua
+    kind: job_board
+    acquisition:
+      - type: http_html
+        preference: primary
+        status: active
+      - type: browser
+        preference: fallback
+        status: evaluate
+    access:
+      requires_auth: false
+      robots_review: pending
+      terms_review: pending
+      rate_limit: unknown
+
   - id: robota_ua
     name: Robota.ua
     base_url: https://robota.ua/

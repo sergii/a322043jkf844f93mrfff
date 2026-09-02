@@ -28,6 +28,18 @@ namespace :lmx do
       puts JSON.pretty_generate(result.to_h)
     end
 
+    desc "Acquire current Work.ua vacancies into durable Phase 0 evidence (HTML primary)"
+    task work_ua: :environment do
+      result = Acquisition::WorkUa.collect(
+        search: ENV["SEARCH"],
+        strategy: ENV["STRATEGY"],
+        run_key: ENV["RUN_KEY"],
+        started_at: Time.current
+      )
+
+      puts JSON.pretty_generate(result.to_h)
+    end
+
     desc "Acquire current Robota.ua vacancies into durable Phase 0 evidence (HTTP API primary)"
     task robota_ua: :environment do
       result = Acquisition::RobotaUa.collect(
