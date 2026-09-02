@@ -184,6 +184,63 @@ ALTER TABLE ONLY public.audit_events FORCE ROW LEVEL SECURITY;
 
 
 --
+-- Name: candidate_evidences; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.candidate_evidences (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    organization_id uuid NOT NULL,
+    candidate_id uuid NOT NULL,
+    source_type character varying NOT NULL,
+    source_reference text,
+    claim text NOT NULL,
+    confidence numeric(4,3),
+    observed_at timestamp(6) without time zone,
+    provenance jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+ALTER TABLE ONLY public.candidate_evidences FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: candidate_profile_version_evidences; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.candidate_profile_version_evidences (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    organization_id uuid NOT NULL,
+    candidate_profile_version_id uuid CONSTRAINT candidate_profile_version_e_candidate_profile_version__not_null NOT NULL,
+    candidate_evidence_id uuid CONSTRAINT candidate_profile_version_eviden_candidate_evidence_id_not_null NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL
+);
+
+ALTER TABLE ONLY public.candidate_profile_version_evidences FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: candidate_profile_versions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.candidate_profile_versions (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    organization_id uuid NOT NULL,
+    candidate_id uuid NOT NULL,
+    version_number integer NOT NULL,
+    schema_version integer DEFAULT 1 NOT NULL,
+    profile_data jsonb DEFAULT '{}'::jsonb NOT NULL,
+    content_digest character varying NOT NULL,
+    origin character varying NOT NULL,
+    accepted_by_user_id uuid,
+    accepted_at timestamp(6) without time zone,
+    created_at timestamp(6) without time zone NOT NULL
+);
+
+ALTER TABLE ONLY public.candidate_profile_versions FORCE ROW LEVEL SECURITY;
+
+
+--
 -- Name: candidates; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -209,7 +266,8 @@ CREATE TABLE public.candidates (
     time_zone character varying,
     updated_at timestamp(6) without time zone NOT NULL,
     work_authorization character varying,
-    erased_at timestamp(6) without time zone
+    erased_at timestamp(6) without time zone,
+    linked_user_id uuid
 );
 
 ALTER TABLE ONLY public.candidates FORCE ROW LEVEL SECURITY;
@@ -436,6 +494,113 @@ CREATE TABLE public.language_proficiencies (
 );
 
 ALTER TABLE ONLY public.language_proficiencies FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: market_catalog_companies; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.market_catalog_companies (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    canonical_name character varying NOT NULL,
+    normalized_name character varying NOT NULL,
+    website_url text,
+    primary_domain character varying,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: market_catalog_job_openings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.market_catalog_job_openings (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    primary_company_id uuid,
+    canonical_title character varying NOT NULL,
+    normalized_title character varying NOT NULL,
+    lifecycle_state character varying DEFAULT 'open'::character varying NOT NULL,
+    first_seen_at timestamp(6) without time zone NOT NULL,
+    last_seen_at timestamp(6) without time zone NOT NULL,
+    closed_at timestamp(6) without time zone,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
+-- Name: market_catalog_job_postings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.market_catalog_job_postings (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    job_opening_id uuid,
+    publisher_company_id uuid,
+    source_key character varying NOT NULL,
+    external_id character varying,
+    canonical_url text,
+    canonical_url_digest character varying,
+    application_url text,
+    application_url_digest character varying,
+    title character varying NOT NULL,
+    normalized_title character varying NOT NULL,
+    source_published_at timestamp(6) without time zone,
+    source_updated_at timestamp(6) without time zone,
+    first_seen_at timestamp(6) without time zone NOT NULL,
+    last_confirmed_present_at timestamp(6) without time zone NOT NULL,
+    missing_since timestamp(6) without time zone,
+    lifecycle_state character varying DEFAULT 'present'::character varying NOT NULL,
+    description_fingerprint character varying,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL,
+    CONSTRAINT market_postings_identity_check CHECK ((((external_id IS NOT NULL) AND (btrim((external_id)::text) <> ''::text)) OR ((canonical_url IS NOT NULL) AND (btrim(canonical_url) <> ''::text)) OR ((application_url IS NOT NULL) AND (btrim(application_url) <> ''::text))))
+);
+
+
+--
+-- Name: market_catalog_opening_parties; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.market_catalog_opening_parties (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    job_opening_id uuid NOT NULL,
+    company_id uuid,
+    role character varying NOT NULL,
+    party_label character varying,
+    confidence numeric(4,3) DEFAULT 1.0 NOT NULL,
+    evidence jsonb DEFAULT '[]'::jsonb NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL,
+    CONSTRAINT market_parties_confidence_check CHECK (((confidence >= (0)::numeric) AND (confidence <= (1)::numeric))),
+    CONSTRAINT market_parties_identity_check CHECK (((company_id IS NOT NULL) OR ((party_label IS NOT NULL) AND (btrim((party_label)::text) <> ''::text))))
+);
+
+
+--
+-- Name: market_catalog_resolution_decisions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.market_catalog_resolution_decisions (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    decision_type character varying NOT NULL,
+    job_posting_id uuid NOT NULL,
+    from_job_opening_id uuid,
+    to_job_opening_id uuid,
+    confidence numeric(4,3) NOT NULL,
+    evidence jsonb DEFAULT '[]'::jsonb NOT NULL,
+    resolver_key character varying NOT NULL,
+    resolver_version character varying NOT NULL,
+    decided_at timestamp(6) without time zone NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL,
+    CONSTRAINT market_resolutions_confidence_check CHECK (((confidence >= (0)::numeric) AND (confidence <= (1)::numeric)))
+);
 
 
 --
@@ -711,6 +876,30 @@ ALTER TABLE ONLY public.audit_events
 
 
 --
+-- Name: candidate_evidences candidate_evidences_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_evidences
+    ADD CONSTRAINT candidate_evidences_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: candidate_profile_version_evidences candidate_profile_version_evidences_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_profile_version_evidences
+    ADD CONSTRAINT candidate_profile_version_evidences_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: candidate_profile_versions candidate_profile_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_profile_versions
+    ADD CONSTRAINT candidate_profile_versions_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: candidates candidates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -807,6 +996,46 @@ ALTER TABLE ONLY public.language_proficiencies
 
 
 --
+-- Name: market_catalog_companies market_catalog_companies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.market_catalog_companies
+    ADD CONSTRAINT market_catalog_companies_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: market_catalog_job_openings market_catalog_job_openings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.market_catalog_job_openings
+    ADD CONSTRAINT market_catalog_job_openings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: market_catalog_job_postings market_catalog_job_postings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.market_catalog_job_postings
+    ADD CONSTRAINT market_catalog_job_postings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: market_catalog_opening_parties market_catalog_opening_parties_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.market_catalog_opening_parties
+    ADD CONSTRAINT market_catalog_opening_parties_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: market_catalog_resolution_decisions market_catalog_resolution_decisions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.market_catalog_resolution_decisions
+    ADD CONSTRAINT market_catalog_resolution_decisions_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: meetings meetings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -892,6 +1121,139 @@ ALTER TABLE ONLY public.users
 
 ALTER TABLE ONLY public.workspace_invitations
     ADD CONSTRAINT workspace_invitations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: idx_market_companies_normalized_name; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_companies_normalized_name ON public.market_catalog_companies USING btree (normalized_name);
+
+
+--
+-- Name: idx_market_companies_primary_domain; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_companies_primary_domain ON public.market_catalog_companies USING btree (primary_domain);
+
+
+--
+-- Name: idx_market_openings_company_title; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_openings_company_title ON public.market_catalog_job_openings USING btree (primary_company_id, normalized_title);
+
+
+--
+-- Name: idx_market_openings_lifecycle; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_openings_lifecycle ON public.market_catalog_job_openings USING btree (lifecycle_state);
+
+
+--
+-- Name: idx_market_openings_primary_company; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_openings_primary_company ON public.market_catalog_job_openings USING btree (primary_company_id);
+
+
+--
+-- Name: idx_market_parties_company; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_parties_company ON public.market_catalog_opening_parties USING btree (company_id);
+
+
+--
+-- Name: idx_market_parties_opening; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_parties_opening ON public.market_catalog_opening_parties USING btree (job_opening_id);
+
+
+--
+-- Name: idx_market_parties_opening_role_company; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_parties_opening_role_company ON public.market_catalog_opening_parties USING btree (job_opening_id, role, company_id);
+
+
+--
+-- Name: idx_market_postings_lifecycle; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_postings_lifecycle ON public.market_catalog_job_postings USING btree (lifecycle_state);
+
+
+--
+-- Name: idx_market_postings_opening; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_postings_opening ON public.market_catalog_job_postings USING btree (job_opening_id);
+
+
+--
+-- Name: idx_market_postings_publisher; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_postings_publisher ON public.market_catalog_job_postings USING btree (publisher_company_id);
+
+
+--
+-- Name: idx_market_postings_source_apply_digest; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_postings_source_apply_digest ON public.market_catalog_job_postings USING btree (source_key, application_url_digest) WHERE (application_url_digest IS NOT NULL);
+
+
+--
+-- Name: idx_market_postings_source_external; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_market_postings_source_external ON public.market_catalog_job_postings USING btree (source_key, external_id) WHERE (external_id IS NOT NULL);
+
+
+--
+-- Name: idx_market_postings_source_last_present; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_postings_source_last_present ON public.market_catalog_job_postings USING btree (source_key, last_confirmed_present_at);
+
+
+--
+-- Name: idx_market_postings_source_url_digest; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_market_postings_source_url_digest ON public.market_catalog_job_postings USING btree (source_key, canonical_url_digest) WHERE (canonical_url_digest IS NOT NULL);
+
+
+--
+-- Name: idx_market_resolutions_from_opening; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_resolutions_from_opening ON public.market_catalog_resolution_decisions USING btree (from_job_opening_id);
+
+
+--
+-- Name: idx_market_resolutions_posting; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_resolutions_posting ON public.market_catalog_resolution_decisions USING btree (job_posting_id);
+
+
+--
+-- Name: idx_market_resolutions_posting_decided; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_resolutions_posting_decided ON public.market_catalog_resolution_decisions USING btree (job_posting_id, decided_at);
+
+
+--
+-- Name: idx_market_resolutions_to_opening; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_resolutions_to_opening ON public.market_catalog_resolution_decisions USING btree (to_job_opening_id);
 
 
 --
@@ -1056,6 +1418,62 @@ CREATE INDEX index_audit_events_on_subject ON public.audit_events USING btree (o
 
 
 --
+-- Name: index_candidate_evidences_on_organization_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_candidate_evidences_on_organization_id ON public.candidate_evidences USING btree (organization_id);
+
+
+--
+-- Name: index_candidate_evidences_on_workspace_candidate_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_candidate_evidences_on_workspace_candidate_created ON public.candidate_evidences USING btree (organization_id, candidate_id, created_at);
+
+
+--
+-- Name: index_candidate_evidences_on_workspace_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_candidate_evidences_on_workspace_id ON public.candidate_evidences USING btree (organization_id, id);
+
+
+--
+-- Name: index_candidate_profile_version_evidences_on_organization_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_candidate_profile_version_evidences_on_organization_id ON public.candidate_profile_version_evidences USING btree (organization_id);
+
+
+--
+-- Name: index_candidate_profile_versions_on_candidate_version; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_candidate_profile_versions_on_candidate_version ON public.candidate_profile_versions USING btree (candidate_id, version_number);
+
+
+--
+-- Name: index_candidate_profile_versions_on_organization_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_candidate_profile_versions_on_organization_id ON public.candidate_profile_versions USING btree (organization_id);
+
+
+--
+-- Name: index_candidate_profile_versions_on_workspace_candidate_version; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_candidate_profile_versions_on_workspace_candidate_version ON public.candidate_profile_versions USING btree (organization_id, candidate_id, version_number);
+
+
+--
+-- Name: index_candidate_profile_versions_on_workspace_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_candidate_profile_versions_on_workspace_id ON public.candidate_profile_versions USING btree (organization_id, id);
+
+
+--
 -- Name: index_candidates_on_erased_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1074,6 +1492,20 @@ CREATE INDEX index_candidates_on_organization_id ON public.candidates USING btre
 --
 
 CREATE UNIQUE INDEX index_candidates_on_organization_id_and_email ON public.candidates USING btree (organization_id, email) WHERE (email IS NOT NULL);
+
+
+--
+-- Name: index_candidates_on_workspace_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_candidates_on_workspace_id ON public.candidates USING btree (organization_id, id);
+
+
+--
+-- Name: index_candidates_on_workspace_linked_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_candidates_on_workspace_linked_user ON public.candidates USING btree (organization_id, linked_user_id) WHERE (linked_user_id IS NOT NULL);
 
 
 --
@@ -1434,6 +1866,20 @@ CREATE UNIQUE INDEX index_organizations_on_slug ON public.organizations USING bt
 
 
 --
+-- Name: index_profile_version_evidences_on_version_evidence; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_profile_version_evidences_on_version_evidence ON public.candidate_profile_version_evidences USING btree (candidate_profile_version_id, candidate_evidence_id);
+
+
+--
+-- Name: index_profile_version_evidences_on_workspace_version; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_profile_version_evidences_on_workspace_version ON public.candidate_profile_version_evidences USING btree (organization_id, candidate_profile_version_id);
+
+
+--
 -- Name: index_projects_on_client_company_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1581,6 +2027,54 @@ CREATE INDEX index_workspace_invitations_on_organization_id_and_status ON public
 
 
 --
+-- Name: candidate_evidences fk_candidate_evidences_workspace_candidate; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_evidences
+    ADD CONSTRAINT fk_candidate_evidences_workspace_candidate FOREIGN KEY (organization_id, candidate_id) REFERENCES public.candidates(organization_id, id);
+
+
+--
+-- Name: candidates fk_candidates_linked_workspace_member; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidates
+    ADD CONSTRAINT fk_candidates_linked_workspace_member FOREIGN KEY (linked_user_id, organization_id) REFERENCES public.memberships(user_id, organization_id);
+
+
+--
+-- Name: candidate_profile_version_evidences fk_profile_version_evidences_workspace_evidence; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_profile_version_evidences
+    ADD CONSTRAINT fk_profile_version_evidences_workspace_evidence FOREIGN KEY (organization_id, candidate_evidence_id) REFERENCES public.candidate_evidences(organization_id, id);
+
+
+--
+-- Name: candidate_profile_version_evidences fk_profile_version_evidences_workspace_version; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_profile_version_evidences
+    ADD CONSTRAINT fk_profile_version_evidences_workspace_version FOREIGN KEY (organization_id, candidate_profile_version_id) REFERENCES public.candidate_profile_versions(organization_id, id);
+
+
+--
+-- Name: candidate_profile_versions fk_profile_versions_accepting_workspace_member; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_profile_versions
+    ADD CONSTRAINT fk_profile_versions_accepting_workspace_member FOREIGN KEY (accepted_by_user_id, organization_id) REFERENCES public.memberships(user_id, organization_id);
+
+
+--
+-- Name: candidate_profile_versions fk_profile_versions_workspace_candidate; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_profile_versions
+    ADD CONSTRAINT fk_profile_versions_workspace_candidate FOREIGN KEY (organization_id, candidate_id) REFERENCES public.candidates(organization_id, id);
+
+
+--
 -- Name: language_proficiencies fk_rails_04c159e5d0; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1597,6 +2091,14 @@ ALTER TABLE ONLY public.meetings
 
 
 --
+-- Name: market_catalog_opening_parties fk_rails_0970411655; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.market_catalog_opening_parties
+    ADD CONSTRAINT fk_rails_0970411655 FOREIGN KEY (job_opening_id) REFERENCES public.market_catalog_job_openings(id);
+
+
+--
 -- Name: competency_assessment_evidences fk_rails_0ccb9d4f75; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1610,6 +2112,14 @@ ALTER TABLE ONLY public.competency_assessment_evidences
 
 ALTER TABLE ONLY public.client_decisions
     ADD CONSTRAINT fk_rails_144478fa83 FOREIGN KEY (decided_by_id) REFERENCES public.users(id);
+
+
+--
+-- Name: market_catalog_job_postings fk_rails_1818d214a1; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.market_catalog_job_postings
+    ADD CONSTRAINT fk_rails_1818d214a1 FOREIGN KEY (publisher_company_id) REFERENCES public.market_catalog_companies(id);
 
 
 --
@@ -1666,6 +2176,22 @@ ALTER TABLE ONLY public.evidences
 
 ALTER TABLE ONLY public.competency_assessment_evidences
     ADD CONSTRAINT fk_rails_3357e6a30b FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
+
+
+--
+-- Name: candidate_profile_versions fk_rails_3a58eafdce; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_profile_versions
+    ADD CONSTRAINT fk_rails_3a58eafdce FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
+
+
+--
+-- Name: candidate_evidences fk_rails_3cc6d0dd56; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_evidences
+    ADD CONSTRAINT fk_rails_3cc6d0dd56 FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
 
 
 --
@@ -1749,6 +2275,14 @@ ALTER TABLE ONLY public.applications
 
 
 --
+-- Name: market_catalog_resolution_decisions fk_rails_72d0eac1e5; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.market_catalog_resolution_decisions
+    ADD CONSTRAINT fk_rails_72d0eac1e5 FOREIGN KEY (from_job_opening_id) REFERENCES public.market_catalog_job_openings(id);
+
+
+--
 -- Name: sessions fk_rails_758836b4f0; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1765,6 +2299,14 @@ ALTER TABLE ONLY public.workspace_invitations
 
 
 --
+-- Name: candidate_profile_version_evidences fk_rails_75cd26c308; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_profile_version_evidences
+    ADD CONSTRAINT fk_rails_75cd26c308 FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
+
+
+--
 -- Name: sourcing_briefs fk_rails_76a9476b2e; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1778,6 +2320,14 @@ ALTER TABLE ONLY public.sourcing_briefs
 
 ALTER TABLE ONLY public.tasks
     ADD CONSTRAINT fk_rails_781b907909 FOREIGN KEY (assigned_to_id) REFERENCES public.users(id);
+
+
+--
+-- Name: market_catalog_job_postings fk_rails_78ac82fbc3; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.market_catalog_job_postings
+    ADD CONSTRAINT fk_rails_78ac82fbc3 FOREIGN KEY (job_opening_id) REFERENCES public.market_catalog_job_openings(id);
 
 
 --
@@ -1802,6 +2352,14 @@ ALTER TABLE ONLY public.meetings
 
 ALTER TABLE ONLY public.application_stage_events
     ADD CONSTRAINT fk_rails_7ba7495aa5 FOREIGN KEY (application_id) REFERENCES public.applications(id);
+
+
+--
+-- Name: market_catalog_resolution_decisions fk_rails_9597b5f4af; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.market_catalog_resolution_decisions
+    ADD CONSTRAINT fk_rails_9597b5f4af FOREIGN KEY (to_job_opening_id) REFERENCES public.market_catalog_job_openings(id);
 
 
 --
@@ -1989,6 +2547,14 @@ ALTER TABLE ONLY public.projects
 
 
 --
+-- Name: market_catalog_job_openings fk_rails_d8e76a4cc2; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.market_catalog_job_openings
+    ADD CONSTRAINT fk_rails_d8e76a4cc2 FOREIGN KEY (primary_company_id) REFERENCES public.market_catalog_companies(id);
+
+
+--
 -- Name: sourcing_briefs fk_rails_e2172b36d3; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2002,6 +2568,22 @@ ALTER TABLE ONLY public.sourcing_briefs
 
 ALTER TABLE ONLY public.application_stage_events
     ADD CONSTRAINT fk_rails_e428f967f8 FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
+
+
+--
+-- Name: market_catalog_opening_parties fk_rails_e8d2d60ff9; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.market_catalog_opening_parties
+    ADD CONSTRAINT fk_rails_e8d2d60ff9 FOREIGN KEY (company_id) REFERENCES public.market_catalog_companies(id);
+
+
+--
+-- Name: market_catalog_resolution_decisions fk_rails_edffbe4590; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.market_catalog_resolution_decisions
+    ADD CONSTRAINT fk_rails_edffbe4590 FOREIGN KEY (job_posting_id) REFERENCES public.market_catalog_job_postings(id);
 
 
 --
@@ -2053,6 +2635,24 @@ ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.audit_events ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: candidate_evidences; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.candidate_evidences ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: candidate_profile_version_evidences; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.candidate_profile_version_evidences ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: candidate_profile_versions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.candidate_profile_versions ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: candidates; Type: ROW SECURITY; Schema: public; Owner: -
@@ -2151,6 +2751,27 @@ CREATE POLICY organization_isolation ON public.applications USING ((organization
 --
 
 CREATE POLICY organization_isolation ON public.audit_events USING ((organization_id = (current_setting('app.current_organization'::text, true))::uuid)) WITH CHECK ((organization_id = (current_setting('app.current_organization'::text, true))::uuid));
+
+
+--
+-- Name: candidate_evidences organization_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY organization_isolation ON public.candidate_evidences USING ((organization_id = (current_setting('app.current_organization'::text, true))::uuid)) WITH CHECK ((organization_id = (current_setting('app.current_organization'::text, true))::uuid));
+
+
+--
+-- Name: candidate_profile_version_evidences organization_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY organization_isolation ON public.candidate_profile_version_evidences USING ((organization_id = (current_setting('app.current_organization'::text, true))::uuid)) WITH CHECK ((organization_id = (current_setting('app.current_organization'::text, true))::uuid));
+
+
+--
+-- Name: candidate_profile_versions organization_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY organization_isolation ON public.candidate_profile_versions USING ((organization_id = (current_setting('app.current_organization'::text, true))::uuid)) WITH CHECK ((organization_id = (current_setting('app.current_organization'::text, true))::uuid));
 
 
 --
@@ -2303,6 +2924,8 @@ ALTER TABLE public.workspace_invitations ENABLE ROW LEVEL SECURITY;
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260902013000'),
+('20260902011700'),
 ('20260901194000'),
 ('20260729000000'),
 ('20260723211000'),
