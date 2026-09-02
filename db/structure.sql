@@ -387,6 +387,27 @@ ALTER TABLE ONLY public.evidences FORCE ROW LEVEL SECURITY;
 
 
 --
+-- Name: ingestion_records; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ingestion_records (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    source_run_id uuid NOT NULL,
+    raw_payload_id uuid NOT NULL,
+    transport character varying NOT NULL,
+    ingress_interface character varying,
+    ingested_at timestamp(6) without time zone NOT NULL,
+    collector_version character varying,
+    adapter_version character varying,
+    parser_version character varying,
+    idempotency_key character varying NOT NULL,
+    provenance jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
 -- Name: interview_assessments; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -568,6 +589,27 @@ ALTER TABLE ONLY public.projects FORCE ROW LEVEL SECURITY;
 
 
 --
+-- Name: raw_payloads; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.raw_payloads (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    source_run_id uuid NOT NULL,
+    source_uri text,
+    content_digest character varying NOT NULL,
+    content_type character varying,
+    encoding character varying,
+    body bytea NOT NULL,
+    byte_size bigint NOT NULL,
+    captured_at timestamp(6) without time zone NOT NULL,
+    idempotency_key character varying NOT NULL,
+    provenance jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+
+--
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -605,6 +647,42 @@ CREATE TABLE public.source_observations (
     idempotency_key character varying NOT NULL,
     payload jsonb DEFAULT '{}'::jsonb NOT NULL,
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL,
+    source_run_id uuid NOT NULL,
+    ingestion_record_id uuid NOT NULL,
+    original_url text,
+    source_published_at timestamp(6) without time zone,
+    source_updated_at timestamp(6) without time zone,
+    ingested_at timestamp(6) without time zone NOT NULL,
+    presence_state character varying DEFAULT 'present'::character varying NOT NULL,
+    parser_version character varying
+);
+
+
+--
+-- Name: source_runs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.source_runs (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    source_key character varying NOT NULL,
+    transport character varying NOT NULL,
+    status character varying DEFAULT 'running'::character varying NOT NULL,
+    started_at timestamp(6) without time zone NOT NULL,
+    finished_at timestamp(6) without time zone,
+    fetched_count bigint,
+    discovered_count bigint,
+    observed_count bigint,
+    run_key character varying,
+    collector_version character varying,
+    adapter_version character varying,
+    parser_version character varying,
+    idempotency_key character varying NOT NULL,
+    error_class character varying,
+    error_message text,
+    error_details jsonb DEFAULT '{}'::jsonb NOT NULL,
+    provenance jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL
 );
@@ -849,6 +927,14 @@ ALTER TABLE ONLY public.evidences
 
 
 --
+-- Name: ingestion_records ingestion_records_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ingestion_records
+    ADD CONSTRAINT ingestion_records_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: interview_assessments interview_assessments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -921,6 +1007,14 @@ ALTER TABLE ONLY public.projects
 
 
 --
+-- Name: raw_payloads raw_payloads_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.raw_payloads
+    ADD CONSTRAINT raw_payloads_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -942,6 +1036,14 @@ ALTER TABLE ONLY public.sessions
 
 ALTER TABLE ONLY public.source_observations
     ADD CONSTRAINT source_observations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: source_runs source_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.source_runs
+    ADD CONSTRAINT source_runs_pkey PRIMARY KEY (id);
 
 
 --
@@ -1355,6 +1457,34 @@ CREATE INDEX index_evidences_on_organization_id ON public.evidences USING btree 
 
 
 --
+-- Name: index_ingestion_records_on_idempotency_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_ingestion_records_on_idempotency_key ON public.ingestion_records USING btree (idempotency_key);
+
+
+--
+-- Name: index_ingestion_records_on_raw_payload_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_ingestion_records_on_raw_payload_id ON public.ingestion_records USING btree (raw_payload_id);
+
+
+--
+-- Name: index_ingestion_records_on_source_run_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_ingestion_records_on_source_run_id ON public.ingestion_records USING btree (source_run_id);
+
+
+--
+-- Name: index_ingestion_records_on_source_run_id_and_ingested_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_ingestion_records_on_source_run_id_and_ingested_at ON public.ingestion_records USING btree (source_run_id, ingested_at);
+
+
+--
 -- Name: index_interview_assessments_on_assessor_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1621,6 +1751,34 @@ CREATE INDEX index_projects_on_organization_id ON public.projects USING btree (o
 
 
 --
+-- Name: index_raw_payloads_on_idempotency_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_raw_payloads_on_idempotency_key ON public.raw_payloads USING btree (idempotency_key);
+
+
+--
+-- Name: index_raw_payloads_on_source_run_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_raw_payloads_on_source_run_id ON public.raw_payloads USING btree (source_run_id);
+
+
+--
+-- Name: index_raw_payloads_on_source_run_id_and_captured_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_raw_payloads_on_source_run_id_and_captured_at ON public.raw_payloads USING btree (source_run_id, captured_at);
+
+
+--
+-- Name: index_raw_payloads_on_source_run_id_and_content_digest; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_raw_payloads_on_source_run_id_and_content_digest ON public.raw_payloads USING btree (source_run_id, content_digest);
+
+
+--
 -- Name: index_sessions_on_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1635,6 +1793,13 @@ CREATE UNIQUE INDEX index_source_observations_on_idempotency_key ON public.sourc
 
 
 --
+-- Name: index_source_observations_on_ingestion_record_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_source_observations_on_ingestion_record_id ON public.source_observations USING btree (ingestion_record_id);
+
+
+--
 -- Name: index_source_observations_on_source_external_observed; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1646,6 +1811,34 @@ CREATE INDEX index_source_observations_on_source_external_observed ON public.sou
 --
 
 CREATE INDEX index_source_observations_on_source_key_and_observed_at ON public.source_observations USING btree (source_key, observed_at);
+
+
+--
+-- Name: index_source_observations_on_source_run_id_and_observed_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_source_observations_on_source_run_id_and_observed_at ON public.source_observations USING btree (source_run_id, observed_at);
+
+
+--
+-- Name: index_source_runs_on_idempotency_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_source_runs_on_idempotency_key ON public.source_runs USING btree (idempotency_key);
+
+
+--
+-- Name: index_source_runs_on_source_key_and_started_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_source_runs_on_source_key_and_started_at ON public.source_runs USING btree (source_key, started_at);
+
+
+--
+-- Name: index_source_runs_on_source_status_finished; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_source_runs_on_source_status_finished ON public.source_runs USING btree (source_key, status, finished_at);
 
 
 --
@@ -1843,6 +2036,14 @@ ALTER TABLE ONLY public.interviews
 
 
 --
+-- Name: ingestion_records fk_rails_20fd14e314; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ingestion_records
+    ADD CONSTRAINT fk_rails_20fd14e314 FOREIGN KEY (raw_payload_id) REFERENCES public.raw_payloads(id);
+
+
+--
 -- Name: interviews fk_rails_22b104629d; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1904,6 +2105,14 @@ ALTER TABLE ONLY public.candidate_evidences
 
 ALTER TABLE ONLY public.applications
     ADD CONSTRAINT fk_rails_3df42c917d FOREIGN KEY (candidate_id) REFERENCES public.candidates(id);
+
+
+--
+-- Name: ingestion_records fk_rails_42f822a406; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ingestion_records
+    ADD CONSTRAINT fk_rails_42f822a406 FOREIGN KEY (source_run_id) REFERENCES public.source_runs(id);
 
 
 --
@@ -2163,6 +2372,14 @@ ALTER TABLE ONLY public.competencies
 
 
 --
+-- Name: raw_payloads fk_rails_c219d9df74; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.raw_payloads
+    ADD CONSTRAINT fk_rails_c219d9df74 FOREIGN KEY (source_run_id) REFERENCES public.source_runs(id);
+
+
+--
 -- Name: meetings fk_rails_c26ce8563d; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2176,6 +2393,14 @@ ALTER TABLE ONLY public.meetings
 
 ALTER TABLE ONLY public.active_storage_attachments
     ADD CONSTRAINT fk_rails_c3b3935057 FOREIGN KEY (blob_id) REFERENCES public.active_storage_blobs(id);
+
+
+--
+-- Name: source_observations fk_rails_c629b57347; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.source_observations
+    ADD CONSTRAINT fk_rails_c629b57347 FOREIGN KEY (source_run_id) REFERENCES public.source_runs(id);
 
 
 --
@@ -2232,6 +2457,14 @@ ALTER TABLE ONLY public.projects
 
 ALTER TABLE ONLY public.sourcing_briefs
     ADD CONSTRAINT fk_rails_e2172b36d3 FOREIGN KEY (approved_by_id) REFERENCES public.users(id);
+
+
+--
+-- Name: source_observations fk_rails_e35751ae57; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.source_observations
+    ADD CONSTRAINT fk_rails_e35751ae57 FOREIGN KEY (ingestion_record_id) REFERENCES public.ingestion_records(id);
 
 
 --
@@ -2581,6 +2814,7 @@ SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
 ('20260902011700'),
+('20260902002000'),
 ('20260901194000'),
 ('20260729000000'),
 ('20260723211000'),
