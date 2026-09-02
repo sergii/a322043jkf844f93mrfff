@@ -96,7 +96,15 @@ RSpec.describe Acquisition::RecordSourceObservation, type: :model do
     expect(raw).to be_readonly
     expect(ingestion).to be_readonly
     expect(observation).to be_readonly
-    expect { raw.update!(body: "changed") }.to raise_error(ActiveRecord::ReadOnlyRecord)
+
+    changed_body = "changed".b
+    expect do
+      raw.update!(
+        body: changed_body,
+        content_digest: Digest::SHA256.hexdigest(changed_body),
+        byte_size: changed_body.bytesize
+      )
+    end.to raise_error(ActiveRecord::ReadOnlyRecord)
     expect { ingestion.update!(parser_version: "changed") }.to raise_error(ActiveRecord::ReadOnlyRecord)
     expect { observation.update!(external_id: "jobs/changed") }.to raise_error(ActiveRecord::ReadOnlyRecord)
   end
