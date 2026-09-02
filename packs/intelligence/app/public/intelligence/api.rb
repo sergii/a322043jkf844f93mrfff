@@ -66,7 +66,7 @@ module Intelligence
           kind: assessment.processor_kind,
           key: assessment.processor_key,
           version: assessment.processor_version,
-          model_name: assessment.model_name,
+          model_name: assessment.processor_model_name,
           model_version: assessment.model_version
         ),
         generated_at: assessment.generated_at,
