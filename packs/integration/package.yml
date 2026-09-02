@@ -1,5 +1,6 @@
 enforce_dependencies: strict
 dependencies:
+  - packs/intelligence
   - packs/market_catalog
   - packs/talent_profile
   - packs/workspace
