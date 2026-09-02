@@ -219,7 +219,7 @@ RSpec.describe "Intelligence MatchAssessment core", type: :model do
   end
 
   def insert_committed_assessment(owner_connection, id:, organization_id:)
-    owner_connection.exec_params(<<~SQL, [
+    params = [
       id,
       organization_id,
       candidate_id,
@@ -227,7 +227,9 @@ RSpec.describe "Intelligence MatchAssessment core", type: :model do
       profile_digest,
       opening_id,
       observed_at
-    ])
+    ]
+
+    owner_connection.exec_params(<<~SQL, params)
       INSERT INTO intelligence_match_assessments
         (id, organization_id, candidate_id, candidate_profile_version_id,
          candidate_profile_content_digest, job_opening_id, opening_evidence_cutoff,
