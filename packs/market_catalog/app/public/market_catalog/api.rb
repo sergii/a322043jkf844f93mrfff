@@ -2,6 +2,9 @@
 
 module MarketCatalog
   module Api
+    class Error < StandardError; end
+    class NotFound < Error; end
+
     module_function
 
     def create_company(**attributes)
@@ -164,6 +167,8 @@ module MarketCatalog
 
     def find_record(klass, value, typed_prefix)
       value.to_s.start_with?(typed_prefix) ? klass.find_by_typed_id!(value) : klass.find(value)
+    rescue ActiveRecord::RecordNotFound
+      raise NotFound, "resource not found"
     end
     private_class_method :find_record
 
