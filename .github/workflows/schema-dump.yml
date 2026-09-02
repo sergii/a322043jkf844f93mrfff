@@ -28,8 +28,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y postgresql-client-18
       - name: Checkout code
         uses: actions/checkout@v7
       - name: Set up Ruby
@@ -37,7 +35,33 @@ jobs:
         with:
           bundler-cache: true
       - name: Rebuild schema through migrations
-        run: bin/rails db:drop db:create db:migrate
+        run: bin/rails runner 'ActiveRecord::Base.connection_pool.migration_context.migrate'
+      - name: Dump structure with PostgreSQL 18
+        run: |
+          docker run --rm --network host \
+            -e PGPASSWORD="$POSTGRES_PASSWORD" \
+            postgres:18.4 \
+            pg_dump \
+              --host "$POSTGRES_HOST" \
+              --port "$POSTGRES_PORT" \
+              --username "$POSTGRES_USER" \
+              --schema-only \
+              --no-privileges \
+              --no-owner \
+              "$POSTGRES_TEST_DATABASE" > db/structure.sql
+          bin/rails runner '
+            versions = ActiveRecord::Base.connection.select_values("SELECT version FROM schema_migrations ORDER BY version DESC")
+            File.open("db/structure.sql", "a") do |file|
+              file.puts
+              file.puts %(SET search_path TO "$user", public;)
+              file.puts
+              file.puts %(INSERT INTO "schema_migrations" (version) VALUES)
+              versions.each_with_index do |version, index|
+                suffix = index == versions.length - 1 ? ";" : ","
+                file.puts "(#{ActiveRecord::Base.connection.quote(version)})#{suffix}"
+              end
+            end
+          '
       - name: Upload generated structure
         uses: actions/upload-artifact@v7
         with:
