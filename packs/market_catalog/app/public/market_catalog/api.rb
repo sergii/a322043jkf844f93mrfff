@@ -12,6 +12,15 @@ module MarketCatalog
       opening_snapshot(CreateOpening.call(**attributes))
     end
 
+    def search_openings(query: nil, filters: {}, cursor: nil, limit: nil)
+      result = SearchOpenings.call(query:, filters:, cursor:, limit:)
+
+      {
+        items: result.records.map { opening_snapshot(_1) }.freeze,
+        next_cursor: result.next_cursor
+      }.compact.freeze
+    end
+
     def record_posting(**attributes)
       job_posting_snapshot(RecordPosting.call(**attributes))
     end
