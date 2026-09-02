@@ -29,11 +29,14 @@ Typed IDs are treated as opaque public strings by the Integration protocol. Prod
 | --- | --- | --- |
 | `openings.search.v1` | optional `query`, generic `filters`, optional `cursor`, optional positive `limit` | object with `items` array and optional `next_cursor` |
 | `openings.get.v1` | required opaque `id` | extensible resource object |
-| `candidates.get.v1` | required opaque `id` | extensible resource object |
-| `matches.get.v1` | required opaque `id` | versioned MatchAssessment resource from Intelligence |
+| `candidates.get.v1` | required opaque Candidate `id` | Candidate resource object |
+| `candidates.profile.v1` | required opaque Candidate `id` | latest canonical CandidateProfileVersion resource |
+| `matches.get.v1` | required opaque MatchAssessment `id` | versioned MatchAssessment resource from Intelligence |
 | `applications.get.v1` | required opaque `id` | extensible resource object |
 
 Resource fields remain owned by their bounded contexts. Integration validates the envelope shape but does not duplicate Market Catalog, Talent Profile, Intelligence, or Personal CRM domain schemas.
+
+`candidates.profile.v1` returns the latest canonical profile version for the requested Candidate. Exact historical profile-version lookup remains an owning Talent Profile API concern and can be exposed as a separate transport contract later if needed.
 
 `matches.get.v1` is deliberately a resource lookup by MatchAssessment ID. Ranked or top-match retrieval should be introduced later as a distinct collection/query contract rather than changing the meaning of this v1 operation.
 
@@ -146,13 +149,14 @@ MCP and HTTP adapters can map these codes to their own transport-specific error/
 
 Authentication is represented by `principal` plus a credential reference in the query context. Authorization is a separate port: `Integration::Read::Ports::Authorization`.
 
-Production-shaped composition resolves capabilities from a server-side credential source and checks the contract's required capability before routing the query. `matches.get.v1` requires `read:matches`. Client tool arguments never grant capabilities.
+Production-shaped composition resolves capabilities from a server-side credential source and checks the contract's required capability before routing the query. Candidate identity and profile reads both require `read:candidates`; `matches.get.v1` requires `read:matches`. Client tool arguments never grant capabilities.
 
 ## Intentionally not implemented here
 
 - MCP server/runtime or MCP gem integration
 - HTTP routes/controllers
 - direct ActiveRecord queries across bounded contexts
+- exact historical CandidateProfileVersion transport lookup
 - ranked/top MatchAssessment query semantics
 - canonical Personal CRM implementation for `applications.get`
 - Transactional Inbox/Outbox write handling
