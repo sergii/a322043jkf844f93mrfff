@@ -19,6 +19,11 @@ RSpec.describe Acquisition::SourceRegistry, type: :model do
     )
   end
 
+  it "keeps personal ranking policy out of source metadata" do
+    expect(described_class.fetch("dou")).not_to have_key("weight")
+    expect(described_class.fetch("dou")).not_to have_key("lane")
+  end
+
   it "fails explicitly for an unknown source" do
     expect { described_class.fetch("missing") }
       .to raise_error(KeyError, /Unknown acquisition source/)
