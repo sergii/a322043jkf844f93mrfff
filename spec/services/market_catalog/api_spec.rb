@@ -75,6 +75,32 @@ RSpec.describe MarketCatalog::Api, type: :model do
     expect(fetched).to eq(snapshot)
   end
 
+  it "returns reconciled lifecycle projections as immutable public records" do
+    posting = described_class.record_posting(
+      source_key: "dou",
+      external_id: "vacancies/closed",
+      title: "Ruby Engineer",
+      observed_at:
+    )
+    described_class.record_posting_snapshot(
+      posting_id: posting.fetch(:id),
+      source_observation_id: TypeID.from_uuid("source_observation", SecureRandom.uuid).to_s,
+      observed_at: observed_at + 1.hour,
+      presence_state: "explicit_closed",
+      normalizer_key: "dou_job_posting",
+      normalizer_version: "v1"
+    )
+
+    reconciled = described_class.reconcile_posting_lifecycle(posting_id: posting.fetch(:id))
+
+    expect(reconciled).to be_frozen
+    expect(reconciled).to include(
+      id: posting.fetch(:id),
+      lifecycle_state: "closed",
+      missing_since: observed_at + 1.hour
+    )
+  end
+
   it "returns opening parties and posting references through the public read boundary" do
     company = MarketCatalog::CreateCompany.call(canonical_name: "Vendor Inc")
     opening = MarketCatalog::CreateOpening.call(
