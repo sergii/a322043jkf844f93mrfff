@@ -99,7 +99,7 @@ module Acquisition
 
     def idempotency_key
       @idempotency_key ||= Digest::SHA256.hexdigest(
-        [source_run.id, source_uri, captured_at.iso8601(6), content_digest].join("|")
+        [ source_run.id, source_uri, captured_at.iso8601(6), content_digest ].join("|")
       )
     end
 

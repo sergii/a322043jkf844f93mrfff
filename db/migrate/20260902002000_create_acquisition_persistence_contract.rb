@@ -115,7 +115,7 @@ class CreateAcquisitionPersistenceContract < ActiveRecord::Migration[8.1]
       metadata = observation.metadata || {}
       parser_version = metadata["parser_version"].presence
       recorded_at = observation.created_at || observation.observed_at
-      finished_at = [recorded_at, observation.observed_at].compact.max
+      finished_at = [ recorded_at, observation.observed_at ].compact.max
       provenance = { "backfilled_source_observation_id" => observation.id.to_s }
 
       source_run = source_run_class.create!(
