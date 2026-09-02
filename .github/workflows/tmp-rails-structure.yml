@@ -35,9 +35,14 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
       - uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
+      - name: Restore adoption structure baseline
+        run: |
+          git fetch origin lmx/adoption:refs/remotes/origin/lmx/adoption
+          git show origin/lmx/adoption:db/structure.sql > db/structure.sql
       - name: Provide matching pg_dump 18.4 to Rails
         run: |
           mkdir -p "$RUNNER_TEMP/pg18"
@@ -54,7 +59,7 @@ jobs:
           SH
           chmod +x "$RUNNER_TEMP/pg18/pg_dump"
           echo "$RUNNER_TEMP/pg18" >> "$GITHUB_PATH"
-      - name: Regenerate Rails SQL structure
+      - name: Load adoption structure and apply MatchAssessment migration
         run: |
           bin/rails db:test:prepare
           bin/rails db:migrate
