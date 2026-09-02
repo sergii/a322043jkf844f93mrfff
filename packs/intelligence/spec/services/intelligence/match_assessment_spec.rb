@@ -119,36 +119,40 @@ RSpec.describe "Intelligence MatchAssessment core", type: :model do
   end
 
   it "keeps another workspace from reading the assessment through PostgreSQL RLS" do
-    assessment = record_assessment
+    assessment_uuid = SecureRandom.uuid
     other_workspace_uuid = SecureRandom.uuid
     other_workspace_id = TypeID.from_uuid("org", other_workspace_uuid).to_s
+    owner_connection = PG.connect(**connection_options)
     runtime_connection = PG.connect(
       **connection_options.merge(
         user: INTELLIGENCE_RLS_RUNTIME_ROLE,
         password: INTELLIGENCE_RLS_RUNTIME_PASSWORD
       )
     )
+    insert_committed_assessment(owner_connection, id: assessment_uuid, organization_id: workspace_uuid)
 
     runtime_connection.exec_params(
       "SELECT set_config('app.current_organization', $1, false)",
       [ workspace_uuid ]
     )
-    expect(runtime_assessment_ids(runtime_connection)).to include(assessment.id)
+    expect(runtime_assessment_ids(runtime_connection)).to include(assessment_uuid)
 
     runtime_connection.exec_params(
       "SELECT set_config('app.current_organization', $1, false)",
       [ other_workspace_uuid ]
     )
-    expect(runtime_assessment_ids(runtime_connection)).not_to include(assessment.id)
+    expect(runtime_assessment_ids(runtime_connection)).not_to include(assessment_uuid)
 
     expect do
       Intelligence::Api.fetch_match_assessment(
         workspace_id: other_workspace_id,
-        assessment_id: assessment.typed_id
+        assessment_id: TypeID.from_uuid("match_assessment", assessment_uuid).to_s
       )
     end.to raise_error(Intelligence::Api::NotFound)
   ensure
     runtime_connection&.close
+    owner_connection&.exec_params("DELETE FROM intelligence_match_assessments WHERE id = $1", [ assessment_uuid ])
+    owner_connection&.close
   end
 
   private
@@ -212,6 +216,28 @@ RSpec.describe "Intelligence MatchAssessment core", type: :model do
       user: config.fetch(:username),
       password: config.fetch(:password)
     }
+  end
+
+  def insert_committed_assessment(owner_connection, id:, organization_id:)
+    owner_connection.exec_params(<<~SQL, [
+      id,
+      organization_id,
+      candidate_id,
+      profile_version_id,
+      profile_digest,
+      opening_id,
+      observed_at
+    ])
+      INSERT INTO intelligence_match_assessments
+        (id, organization_id, candidate_id, candidate_profile_version_id,
+         candidate_profile_content_digest, job_opening_id, opening_evidence_cutoff,
+         opening_snapshot, version_number, score_details, strengths, gaps, risks,
+         interview_angles, evidence_references, scoring_policy_version, generated_at, created_at)
+      VALUES
+        ($1, $2, $3, $4, $5, $6, $7, '{}'::jsonb, 1, '{}'::jsonb, '[]'::jsonb,
+         '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, 'default:v1',
+         CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    SQL
   end
 
   def runtime_assessment_ids(runtime_connection)
