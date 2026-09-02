@@ -1,4 +1,5 @@
 enforce_dependencies: strict
+enforce_privacy: true
 dependencies:
   - packs/platform
 metadata:

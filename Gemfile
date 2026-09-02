@@ -30,6 +30,7 @@ group :development, :test do
   gem "rubocop-rails-omakase", require: false
   gem "rspec-rails", "~> 8.0"
   gem "packwerk", "~> 3.3", require: false
+  gem "packwerk-extensions", "~> 0.3", require: false
 end
 
 group :development do
