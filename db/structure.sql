@@ -184,6 +184,63 @@ ALTER TABLE ONLY public.audit_events FORCE ROW LEVEL SECURITY;
 
 
 --
+-- Name: candidate_evidences; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.candidate_evidences (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    organization_id uuid NOT NULL,
+    candidate_id uuid NOT NULL,
+    source_type character varying NOT NULL,
+    source_reference text,
+    claim text NOT NULL,
+    confidence numeric(4,3),
+    observed_at timestamp(6) without time zone,
+    provenance jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+ALTER TABLE ONLY public.candidate_evidences FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: candidate_profile_version_evidences; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.candidate_profile_version_evidences (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    organization_id uuid NOT NULL,
+    candidate_profile_version_id uuid CONSTRAINT candidate_profile_version_e_candidate_profile_version__not_null NOT NULL,
+    candidate_evidence_id uuid CONSTRAINT candidate_profile_version_eviden_candidate_evidence_id_not_null NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL
+);
+
+ALTER TABLE ONLY public.candidate_profile_version_evidences FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: candidate_profile_versions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.candidate_profile_versions (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    organization_id uuid NOT NULL,
+    candidate_id uuid NOT NULL,
+    version_number integer NOT NULL,
+    schema_version integer DEFAULT 1 NOT NULL,
+    profile_data jsonb DEFAULT '{}'::jsonb NOT NULL,
+    content_digest character varying NOT NULL,
+    origin character varying NOT NULL,
+    accepted_by_user_id uuid,
+    accepted_at timestamp(6) without time zone,
+    created_at timestamp(6) without time zone NOT NULL
+);
+
+ALTER TABLE ONLY public.candidate_profile_versions FORCE ROW LEVEL SECURITY;
+
+
+--
 -- Name: candidates; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -209,7 +266,8 @@ CREATE TABLE public.candidates (
     time_zone character varying,
     updated_at timestamp(6) without time zone NOT NULL,
     work_authorization character varying,
-    erased_at timestamp(6) without time zone
+    erased_at timestamp(6) without time zone,
+    linked_user_id uuid
 );
 
 ALTER TABLE ONLY public.candidates FORCE ROW LEVEL SECURITY;
@@ -711,6 +769,30 @@ ALTER TABLE ONLY public.audit_events
 
 
 --
+-- Name: candidate_evidences candidate_evidences_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_evidences
+    ADD CONSTRAINT candidate_evidences_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: candidate_profile_version_evidences candidate_profile_version_evidences_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_profile_version_evidences
+    ADD CONSTRAINT candidate_profile_version_evidences_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: candidate_profile_versions candidate_profile_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_profile_versions
+    ADD CONSTRAINT candidate_profile_versions_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: candidates candidates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1056,6 +1138,62 @@ CREATE INDEX index_audit_events_on_subject ON public.audit_events USING btree (o
 
 
 --
+-- Name: index_candidate_evidences_on_organization_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_candidate_evidences_on_organization_id ON public.candidate_evidences USING btree (organization_id);
+
+
+--
+-- Name: index_candidate_evidences_on_workspace_candidate_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_candidate_evidences_on_workspace_candidate_created ON public.candidate_evidences USING btree (organization_id, candidate_id, created_at);
+
+
+--
+-- Name: index_candidate_evidences_on_workspace_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_candidate_evidences_on_workspace_id ON public.candidate_evidences USING btree (organization_id, id);
+
+
+--
+-- Name: index_candidate_profile_version_evidences_on_organization_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_candidate_profile_version_evidences_on_organization_id ON public.candidate_profile_version_evidences USING btree (organization_id);
+
+
+--
+-- Name: index_candidate_profile_versions_on_candidate_version; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_candidate_profile_versions_on_candidate_version ON public.candidate_profile_versions USING btree (candidate_id, version_number);
+
+
+--
+-- Name: index_candidate_profile_versions_on_organization_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_candidate_profile_versions_on_organization_id ON public.candidate_profile_versions USING btree (organization_id);
+
+
+--
+-- Name: index_candidate_profile_versions_on_workspace_candidate_version; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_candidate_profile_versions_on_workspace_candidate_version ON public.candidate_profile_versions USING btree (organization_id, candidate_id, version_number);
+
+
+--
+-- Name: index_candidate_profile_versions_on_workspace_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_candidate_profile_versions_on_workspace_id ON public.candidate_profile_versions USING btree (organization_id, id);
+
+
+--
 -- Name: index_candidates_on_erased_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1074,6 +1212,20 @@ CREATE INDEX index_candidates_on_organization_id ON public.candidates USING btre
 --
 
 CREATE UNIQUE INDEX index_candidates_on_organization_id_and_email ON public.candidates USING btree (organization_id, email) WHERE (email IS NOT NULL);
+
+
+--
+-- Name: index_candidates_on_workspace_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_candidates_on_workspace_id ON public.candidates USING btree (organization_id, id);
+
+
+--
+-- Name: index_candidates_on_workspace_linked_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_candidates_on_workspace_linked_user ON public.candidates USING btree (organization_id, linked_user_id) WHERE (linked_user_id IS NOT NULL);
 
 
 --
@@ -1434,6 +1586,20 @@ CREATE UNIQUE INDEX index_organizations_on_slug ON public.organizations USING bt
 
 
 --
+-- Name: index_profile_version_evidences_on_version_evidence; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_profile_version_evidences_on_version_evidence ON public.candidate_profile_version_evidences USING btree (candidate_profile_version_id, candidate_evidence_id);
+
+
+--
+-- Name: index_profile_version_evidences_on_workspace_version; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_profile_version_evidences_on_workspace_version ON public.candidate_profile_version_evidences USING btree (organization_id, candidate_profile_version_id);
+
+
+--
 -- Name: index_projects_on_client_company_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1581,6 +1747,54 @@ CREATE INDEX index_workspace_invitations_on_organization_id_and_status ON public
 
 
 --
+-- Name: candidate_evidences fk_candidate_evidences_workspace_candidate; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_evidences
+    ADD CONSTRAINT fk_candidate_evidences_workspace_candidate FOREIGN KEY (organization_id, candidate_id) REFERENCES public.candidates(organization_id, id);
+
+
+--
+-- Name: candidates fk_candidates_linked_workspace_member; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidates
+    ADD CONSTRAINT fk_candidates_linked_workspace_member FOREIGN KEY (linked_user_id, organization_id) REFERENCES public.memberships(user_id, organization_id);
+
+
+--
+-- Name: candidate_profile_version_evidences fk_profile_version_evidences_workspace_evidence; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_profile_version_evidences
+    ADD CONSTRAINT fk_profile_version_evidences_workspace_evidence FOREIGN KEY (organization_id, candidate_evidence_id) REFERENCES public.candidate_evidences(organization_id, id);
+
+
+--
+-- Name: candidate_profile_version_evidences fk_profile_version_evidences_workspace_version; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_profile_version_evidences
+    ADD CONSTRAINT fk_profile_version_evidences_workspace_version FOREIGN KEY (organization_id, candidate_profile_version_id) REFERENCES public.candidate_profile_versions(organization_id, id);
+
+
+--
+-- Name: candidate_profile_versions fk_profile_versions_accepting_workspace_member; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_profile_versions
+    ADD CONSTRAINT fk_profile_versions_accepting_workspace_member FOREIGN KEY (accepted_by_user_id, organization_id) REFERENCES public.memberships(user_id, organization_id);
+
+
+--
+-- Name: candidate_profile_versions fk_profile_versions_workspace_candidate; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_profile_versions
+    ADD CONSTRAINT fk_profile_versions_workspace_candidate FOREIGN KEY (organization_id, candidate_id) REFERENCES public.candidates(organization_id, id);
+
+
+--
 -- Name: language_proficiencies fk_rails_04c159e5d0; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1666,6 +1880,22 @@ ALTER TABLE ONLY public.evidences
 
 ALTER TABLE ONLY public.competency_assessment_evidences
     ADD CONSTRAINT fk_rails_3357e6a30b FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
+
+
+--
+-- Name: candidate_profile_versions fk_rails_3a58eafdce; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_profile_versions
+    ADD CONSTRAINT fk_rails_3a58eafdce FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
+
+
+--
+-- Name: candidate_evidences fk_rails_3cc6d0dd56; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_evidences
+    ADD CONSTRAINT fk_rails_3cc6d0dd56 FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
 
 
 --
@@ -1762,6 +1992,14 @@ ALTER TABLE ONLY public.sessions
 
 ALTER TABLE ONLY public.workspace_invitations
     ADD CONSTRAINT fk_rails_759aefbfd2 FOREIGN KEY (invited_by_id) REFERENCES public.users(id);
+
+
+--
+-- Name: candidate_profile_version_evidences fk_rails_75cd26c308; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.candidate_profile_version_evidences
+    ADD CONSTRAINT fk_rails_75cd26c308 FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
 
 
 --
@@ -2055,6 +2293,24 @@ ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_events ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: candidate_evidences; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.candidate_evidences ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: candidate_profile_version_evidences; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.candidate_profile_version_evidences ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: candidate_profile_versions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.candidate_profile_versions ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: candidates; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -2151,6 +2407,27 @@ CREATE POLICY organization_isolation ON public.applications USING ((organization
 --
 
 CREATE POLICY organization_isolation ON public.audit_events USING ((organization_id = (current_setting('app.current_organization'::text, true))::uuid)) WITH CHECK ((organization_id = (current_setting('app.current_organization'::text, true))::uuid));
+
+
+--
+-- Name: candidate_evidences organization_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY organization_isolation ON public.candidate_evidences USING ((organization_id = (current_setting('app.current_organization'::text, true))::uuid)) WITH CHECK ((organization_id = (current_setting('app.current_organization'::text, true))::uuid));
+
+
+--
+-- Name: candidate_profile_version_evidences organization_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY organization_isolation ON public.candidate_profile_version_evidences USING ((organization_id = (current_setting('app.current_organization'::text, true))::uuid)) WITH CHECK ((organization_id = (current_setting('app.current_organization'::text, true))::uuid));
+
+
+--
+-- Name: candidate_profile_versions organization_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY organization_isolation ON public.candidate_profile_versions USING ((organization_id = (current_setting('app.current_organization'::text, true))::uuid)) WITH CHECK ((organization_id = (current_setting('app.current_organization'::text, true))::uuid));
 
 
 --
@@ -2303,6 +2580,7 @@ ALTER TABLE public.workspace_invitations ENABLE ROW LEVEL SECURITY;
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260902011700'),
 ('20260901194000'),
 ('20260729000000'),
 ('20260723211000'),
