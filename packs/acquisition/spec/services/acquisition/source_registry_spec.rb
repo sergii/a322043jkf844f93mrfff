@@ -4,9 +4,10 @@ require "rails_helper"
 
 RSpec.describe Acquisition::SourceRegistry, type: :model do
   it "exposes configured source identifiers and acquisition strategies" do
-    expect(described_class.source_ids).to eq([ "dou", "djinni", "robota_ua" ])
+    expect(described_class.source_ids).to eq([ "dou", "djinni", "work_ua", "robota_ua" ])
     expect(described_class.enabled?("dou")).to be(true)
     expect(described_class.enabled?("djinni")).to be(true)
+    expect(described_class.enabled?("work_ua")).to be(true)
     expect(described_class.enabled?("robota_ua")).to be(true)
     expect(described_class.acquisition_strategies("dou")).to eq(
       [
@@ -25,6 +26,11 @@ RSpec.describe Acquisition::SourceRegistry, type: :model do
       "preference" => "primary",
       "status" => "active"
     )
+    expect(described_class.primary_strategy("work_ua")).to eq(
+      "type" => "http_html",
+      "preference" => "primary",
+      "status" => "active"
+    )
     expect(described_class.primary_strategy("robota_ua")).to eq(
       "type" => "http_api",
       "preference" => "primary",
@@ -37,6 +43,8 @@ RSpec.describe Acquisition::SourceRegistry, type: :model do
     expect(described_class.fetch("dou")).not_to have_key("lane")
     expect(described_class.fetch("djinni")).not_to have_key("weight")
     expect(described_class.fetch("djinni")).not_to have_key("lane")
+    expect(described_class.fetch("work_ua")).not_to have_key("weight")
+    expect(described_class.fetch("work_ua")).not_to have_key("lane")
     expect(described_class.fetch("robota_ua")).not_to have_key("weight")
     expect(described_class.fetch("robota_ua")).not_to have_key("lane")
   end

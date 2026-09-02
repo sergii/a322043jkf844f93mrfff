@@ -24,6 +24,7 @@ class AcquisitionCollectionJob < ApplicationJob
   COLLECTORS = {
     "dou" => Acquisition::Dou,
     "djinni" => Acquisition::Djinni,
+    "work_ua" => Acquisition::WorkUa,
     "robota_ua" => Acquisition::RobotaUa
   }.freeze
 
