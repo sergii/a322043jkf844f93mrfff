@@ -24,7 +24,7 @@ class CreateIntelligenceMatchAssessments < ActiveRecord::Migration[8.1]
       t.string :processor_kind
       t.string :processor_key
       t.string :processor_version
-      t.string :model_name
+      t.string :processor_model_name
       t.string :model_version
       t.datetime :generated_at, null: false
       t.datetime :created_at, null: false
