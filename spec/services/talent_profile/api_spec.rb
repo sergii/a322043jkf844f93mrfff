@@ -82,7 +82,7 @@ RSpec.describe TalentProfile::Api do
           origin: "agent_accepted"
         )
       end
-    end.to raise_error(ActiveRecord::RecordInvalid, /explicit acceptance/)
+    end.to raise_error(ArgumentError, /accepted_by_user_id is required/)
 
     accepted = WorkspaceContext.with(workspace, membership:) do
       described_class.create_profile_version(
@@ -105,7 +105,7 @@ RSpec.describe TalentProfile::Api do
 
     expect do
       WorkspaceContext.with(other_workspace) do
-        described_class.fetch_candidate(candidate.dig(:candidate, :id))
+        described_class.fetch_candidate(candidate_id: candidate.dig(:candidate, :id))
       end
     end.to raise_error(ActiveRecord::RecordNotFound)
   end
@@ -119,6 +119,6 @@ RSpec.describe TalentProfile::Api do
           linked_user_id: user.typed_id
         )
       end
-    end.to raise_error(ActiveRecord::RecordInvalid)
+    end.to raise_error(ActiveRecord::InvalidForeignKey)
   end
 end
