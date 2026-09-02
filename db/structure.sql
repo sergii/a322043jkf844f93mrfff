@@ -434,7 +434,7 @@ CREATE TABLE public.intelligence_match_assessments (
     processor_kind character varying,
     processor_key character varying,
     processor_version character varying,
-    model_name character varying,
+    processor_model_name character varying,
     model_version character varying,
     generated_at timestamp(6) without time zone NOT NULL,
     created_at timestamp(6) without time zone NOT NULL
