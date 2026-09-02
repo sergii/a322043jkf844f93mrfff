@@ -19,12 +19,15 @@ Capabilities are not accepted from MCP/HTTP/CLI request arguments or from client
 ```text
 client request
     |
-    | principal / credential reference / actor / executor / client provenance
+    | authenticated principal / credential reference / provenance
     v
 Integration::Read::Context
     |
     v
-server-side CapabilityResolver
+CredentialCapabilityResolver
+    |
+    v
+server-side CredentialSource
     |
     v
 Integration::Read::CapabilityGrant
@@ -37,30 +40,52 @@ Integration::Read::CapabilityAuthorization
     +-- deny  -> unauthorized
 ```
 
-`Integration::Read::Ports::CapabilityResolver` is the seam for the future workspace/auth implementation. It receives the complete read context, so a concrete resolver may scope grants using workspace, authenticated principal, credential, actor, executor, interface, or client as required by policy.
+`Integration::Read::CredentialCapabilityResolver` is the concrete read resolver. It passes the complete immutable read context to an injected server-side `CredentialSource`, so the source may take workspace, authenticated principal, credential, actor, executor, interface, and client provenance into account.
 
-A `CapabilityGrant` is bound to `workspace_id`, `principal`, and `credential`. `CapabilityAuthorization` rejects a grant whose security identity does not match the query context.
+The source returns authorization evidence containing `workspace_id`, `principal`, `credential`, and `capabilities`. The resolver constructs the `CapabilityGrant` itself and rejects a source result whose security identity differs from the request context.
 
-This prevents a grant resolved for one authenticated security identity from being reused for another request.
+An unknown, expired, or revoked credential should resolve to `nil`; the resolver then fails closed as `unauthenticated`.
+
+A malformed source result is a `contract_violation`, not an implicit deny or an automatically re-bound grant. This makes bugs in security composition visible instead of silently changing authorization behavior.
+
+A `CapabilityGrant` remains bound to `workspace_id`, `principal`, and `credential`. `CapabilityAuthorization` also verifies that binding before evaluating the capability required by the query contract.
+
+## Credential source boundary
+
+`Integration::Read::Ports::CredentialSource` is the persistence/composition seam behind the concrete resolver.
+
+It is intentionally server-side. MCP, HTTP, CLI, and agent clients never provide their own capability arrays. A future source may be backed by:
+
+- Integration-owned agent credential persistence and explicit tool grants
+- delegated user credentials whose workspace access has already been resolved by trusted authentication/authorization composition
+- service credentials with workspace-specific grants
+- a composition layer that intersects credential scope with Workspace authorization facts
+
+The resolver contract does not depend on which persistence or authentication mechanism is selected.
 
 ## Roles versus capabilities
 
-Workspace roles such as owner/admin/member or future recruiting-specific roles remain an authorization implementation concern.
+Workspace roles such as `workspace_admin`, `recruiter`, or client roles remain an authorization implementation concern and are not copied into Integration contracts.
 
-A concrete resolver can translate those internal facts into stable Integration capabilities:
+Do not map every active Workspace membership directly to global Integration read capabilities. Some roles are resource-scoped, such as client access, while current read contracts are workspace-scoped. A trusted credential source or authorization composition layer must preserve that distinction.
+
+Conceptually:
 
 ```text
-workspace membership / role / credential scope
-                  |
-                  v
-        CapabilityResolver
-                  |
-                  v
-          read:openings
-          read:candidates
+Workspace authorization facts + credential scope
+                    |
+                    v
+        server-side CredentialSource
+                    |
+                    v
+        CredentialCapabilityResolver
+                    |
+                    v
+             read:openings
+             read:candidates
 ```
 
-Agent-facing contracts therefore do not change when the internal role model changes.
+Agent-facing contracts therefore remain stable when the internal role model changes.
 
 ## Tool discovery
 
@@ -70,10 +95,10 @@ A future MCP runtime may additionally filter tool discovery by resolved capabili
 
 ## Intentionally not implemented
 
-- persistence for agent credentials or capability grants
-- translation from ActionPolicy/workspace membership to capabilities
-- MCP authentication middleware
+- persistence and secret verification for agent credentials
+- concrete Workspace/ActionPolicy-to-credential-grant composition
+- MCP authentication middleware that establishes the trusted principal and credential reference
 - capability administration UI/API
 - write capabilities and stricter identity-resolution capabilities
 
-Those can be composed behind `CapabilityResolver` without changing the current read contracts.
+These can be added behind the credential-source and authentication boundaries without changing the current read contracts or authorization flow.
