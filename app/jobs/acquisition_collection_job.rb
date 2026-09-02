@@ -1,0 +1,37 @@
+# frozen_string_literal: true
+
+require "net/http"
+require "timeout"
+
+class AcquisitionCollectionJob < ApplicationJob
+  queue_as :acquisition
+
+  limits_concurrency(
+    key: ->(source_key) { "acquisition:#{source_key}" },
+    duration: 30.minutes,
+    on_conflict: :discard
+  )
+
+  retry_on(
+    Net::OpenTimeout,
+    Net::ReadTimeout,
+    Timeout::Error,
+    SocketError,
+    wait: :polynomially_longer,
+    attempts: 4
+  )
+
+  COLLECTORS = {
+    "dou" => Acquisition::Dou,
+    "djinni" => Acquisition::Djinni
+  }.freeze
+
+  def perform(source_key)
+    source_key = source_key.to_s
+    collector = COLLECTORS.fetch(source_key) do
+      raise ArgumentError, "unsupported acquisition source #{source_key.inspect}"
+    end
+
+    collector.collect
+  end
+end
