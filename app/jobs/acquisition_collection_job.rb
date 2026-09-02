@@ -25,7 +25,8 @@ class AcquisitionCollectionJob < ApplicationJob
     "dou" => Acquisition::Dou,
     "djinni" => Acquisition::Djinni,
     "work_ua" => Acquisition::WorkUa,
-    "robota_ua" => Acquisition::RobotaUa
+    "robota_ua" => Acquisition::RobotaUa,
+    "remoteok" => Acquisition::RemoteOk
   }.freeze
 
   def perform(source_key)

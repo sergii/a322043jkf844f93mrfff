@@ -86,6 +86,25 @@ sources:
       terms_review: pending
       rate_limit: unknown
 
+  - id: remoteok
+    name: Remote OK
+    base_url: https://remoteok.com/
+    enabled: true
+    market: global
+    kind: remote_job_board
+    acquisition:
+      - type: http_api
+        preference: primary
+        status: active
+      - type: http_html
+        preference: fallback
+        status: evaluate
+    access:
+      requires_auth: false
+      robots_review: pending
+      terms_review: pending
+      rate_limit: unknown
+
 source_families:
   - id: company_careers
     name: Direct company career pages

@@ -9,15 +9,18 @@ RSpec.describe AcquisitionCollectionJob, type: :job do
     allow(Acquisition::Djinni).to receive(:collect).and_return(:djinni_result)
     allow(Acquisition::WorkUa).to receive(:collect).and_return(:work_ua_result)
     allow(Acquisition::RobotaUa).to receive(:collect).and_return(:robota_result)
+    allow(Acquisition::RemoteOk).to receive(:collect).and_return(:remoteok_result)
 
     expect(described_class.new.perform("dou")).to eq(:dou_result)
     expect(described_class.new.perform("djinni")).to eq(:djinni_result)
     expect(described_class.new.perform("work_ua")).to eq(:work_ua_result)
     expect(described_class.new.perform("robota_ua")).to eq(:robota_result)
+    expect(described_class.new.perform("remoteok")).to eq(:remoteok_result)
     expect(Acquisition::Dou).to have_received(:collect).once
     expect(Acquisition::Djinni).to have_received(:collect).once
     expect(Acquisition::WorkUa).to have_received(:collect).once
     expect(Acquisition::RobotaUa).to have_received(:collect).once
+    expect(Acquisition::RemoteOk).to have_received(:collect).once
   end
 
   it "fails explicitly for an unsupported source" do
@@ -25,7 +28,7 @@ RSpec.describe AcquisitionCollectionJob, type: :job do
       .to raise_error(ArgumentError, /unsupported acquisition source/)
   end
 
-  it "schedules only sources with an explicit unattended collection policy in production" do
+  it "schedules sources with an explicit unattended collection policy in production" do
     production = YAML.safe_load_file(
       Rails.root.join("config/recurring.yml"),
       aliases: true
@@ -42,6 +45,12 @@ RSpec.describe AcquisitionCollectionJob, type: :job do
       "queue" => "acquisition",
       "args" => [ "djinni" ],
       "schedule" => "every 10 minutes"
+    )
+    expect(production.fetch("acquisition_remoteok")).to eq(
+      "class" => "AcquisitionCollectionJob",
+      "queue" => "acquisition",
+      "args" => [ "remoteok" ],
+      "schedule" => "every 15 minutes"
     )
     expect(production).not_to have_key("acquisition_work_ua")
     expect(production).not_to have_key("acquisition_robota_ua")
