@@ -1,12 +1,3 @@
---
--- PostgreSQL database dump
---
-
-\restrict D4r1d1c8Ph0yZJNJ8vDBmw8anWnLRGGOBsZ7uCkmQzumImB5gZocbJ74SbciKw4
-
--- Dumped from database version 18.4 (Debian 18.4-1.pgdg13+1)
--- Dumped by pg_dump version 18.4 (Debian 18.4-1.pgdg13+1)
-
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -3303,5 +3294,35 @@ ALTER TABLE public.workspace_invitations ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict D4r1d1c8Ph0yZJNJ8vDBmw8anWnLRGGOBsZ7uCkmQzumImB5gZocbJ74SbciKw4
+SET search_path TO "$user", public;
+
+INSERT INTO "schema_migrations" (version) VALUES
+('20260902185000'),
+('20260902100000'),
+('20260902013000'),
+('20260902011700'),
+('20260902002000'),
+('20260901194000'),
+('20260729000000'),
+('20260723211000'),
+('20260723210000'),
+('20260723200000'),
+('20260723190000'),
+('20260723180000'),
+('20260723170000'),
+('20260723160000'),
+('20260723150000'),
+('20260723140000'),
+('20260723130000'),
+('20260723120000'),
+('20260723110000'),
+('20260723100000'),
+('20260723090000'),
+('20260723080000'),
+('20260723070000'),
+('20260723060000'),
+('20260723050000'),
+('20260723040000'),
+('20250801153828'),
+('20250801153827');
 
