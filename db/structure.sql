@@ -1,12 +1,3 @@
---
--- PostgreSQL database dump
---
-
-\restrict bBYrgdiBgHhf3H5nUijhvA8MEryNIIkSgUKuKAxkCr6MN8LAac4SzHL20NRId0Y
-
--- Dumped from database version 18.4 (Debian 18.4-1.pgdg13+1)
--- Dumped by pg_dump version 18.4 (Debian 18.4-1.pgdg13+1)
-
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -448,113 +439,6 @@ ALTER TABLE ONLY public.language_proficiencies FORCE ROW LEVEL SECURITY;
 
 
 --
--- Name: market_catalog_companies; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.market_catalog_companies (
-    id uuid DEFAULT uuidv7() NOT NULL,
-    canonical_name character varying NOT NULL,
-    normalized_name character varying NOT NULL,
-    website_url text,
-    primary_domain character varying,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL
-);
-
-
---
--- Name: market_catalog_job_openings; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.market_catalog_job_openings (
-    id uuid DEFAULT uuidv7() NOT NULL,
-    primary_company_id uuid,
-    canonical_title character varying NOT NULL,
-    normalized_title character varying NOT NULL,
-    lifecycle_state character varying DEFAULT 'open'::character varying NOT NULL,
-    first_seen_at timestamp(6) without time zone NOT NULL,
-    last_seen_at timestamp(6) without time zone NOT NULL,
-    closed_at timestamp(6) without time zone,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL
-);
-
-
---
--- Name: market_catalog_job_postings; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.market_catalog_job_postings (
-    id uuid DEFAULT uuidv7() NOT NULL,
-    job_opening_id uuid,
-    publisher_company_id uuid,
-    source_key character varying NOT NULL,
-    external_id character varying,
-    canonical_url text,
-    canonical_url_digest character varying,
-    application_url text,
-    application_url_digest character varying,
-    title character varying NOT NULL,
-    normalized_title character varying NOT NULL,
-    source_published_at timestamp(6) without time zone,
-    source_updated_at timestamp(6) without time zone,
-    first_seen_at timestamp(6) without time zone NOT NULL,
-    last_confirmed_present_at timestamp(6) without time zone NOT NULL,
-    missing_since timestamp(6) without time zone,
-    lifecycle_state character varying DEFAULT 'present'::character varying NOT NULL,
-    description_fingerprint character varying,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL,
-    CONSTRAINT market_postings_identity_check CHECK ((((external_id IS NOT NULL) AND (btrim((external_id)::text) <> ''::text)) OR ((canonical_url IS NOT NULL) AND (btrim(canonical_url) <> ''::text)) OR ((application_url IS NOT NULL) AND (btrim(application_url) <> ''::text))))
-);
-
-
---
--- Name: market_catalog_opening_parties; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.market_catalog_opening_parties (
-    id uuid DEFAULT uuidv7() NOT NULL,
-    job_opening_id uuid NOT NULL,
-    company_id uuid,
-    role character varying NOT NULL,
-    party_label character varying,
-    confidence numeric(4,3) DEFAULT 1.0 NOT NULL,
-    evidence jsonb DEFAULT '[]'::jsonb NOT NULL,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL,
-    CONSTRAINT market_parties_confidence_check CHECK (((confidence >= (0)::numeric) AND (confidence <= (1)::numeric))),
-    CONSTRAINT market_parties_identity_check CHECK (((company_id IS NOT NULL) OR ((party_label IS NOT NULL) AND (btrim((party_label)::text) <> ''::text))))
-);
-
-
---
--- Name: market_catalog_resolution_decisions; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.market_catalog_resolution_decisions (
-    id uuid DEFAULT uuidv7() NOT NULL,
-    decision_type character varying NOT NULL,
-    job_posting_id uuid NOT NULL,
-    from_job_opening_id uuid,
-    to_job_opening_id uuid,
-    confidence numeric(4,3) NOT NULL,
-    evidence jsonb DEFAULT '[]'::jsonb NOT NULL,
-    resolver_key character varying NOT NULL,
-    resolver_version character varying NOT NULL,
-    decided_at timestamp(6) without time zone NOT NULL,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL,
-    CONSTRAINT market_resolutions_confidence_check CHECK (((confidence >= (0)::numeric) AND (confidence <= (1)::numeric)))
-);
-
-
---
 -- Name: meetings; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -923,46 +807,6 @@ ALTER TABLE ONLY public.language_proficiencies
 
 
 --
--- Name: market_catalog_companies market_catalog_companies_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.market_catalog_companies
-    ADD CONSTRAINT market_catalog_companies_pkey PRIMARY KEY (id);
-
-
---
--- Name: market_catalog_job_openings market_catalog_job_openings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.market_catalog_job_openings
-    ADD CONSTRAINT market_catalog_job_openings_pkey PRIMARY KEY (id);
-
-
---
--- Name: market_catalog_job_postings market_catalog_job_postings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.market_catalog_job_postings
-    ADD CONSTRAINT market_catalog_job_postings_pkey PRIMARY KEY (id);
-
-
---
--- Name: market_catalog_opening_parties market_catalog_opening_parties_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.market_catalog_opening_parties
-    ADD CONSTRAINT market_catalog_opening_parties_pkey PRIMARY KEY (id);
-
-
---
--- Name: market_catalog_resolution_decisions market_catalog_resolution_decisions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.market_catalog_resolution_decisions
-    ADD CONSTRAINT market_catalog_resolution_decisions_pkey PRIMARY KEY (id);
-
-
---
 -- Name: meetings meetings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1048,139 +892,6 @@ ALTER TABLE ONLY public.users
 
 ALTER TABLE ONLY public.workspace_invitations
     ADD CONSTRAINT workspace_invitations_pkey PRIMARY KEY (id);
-
-
---
--- Name: idx_market_companies_normalized_name; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_companies_normalized_name ON public.market_catalog_companies USING btree (normalized_name);
-
-
---
--- Name: idx_market_companies_primary_domain; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_companies_primary_domain ON public.market_catalog_companies USING btree (primary_domain);
-
-
---
--- Name: idx_market_openings_company_title; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_openings_company_title ON public.market_catalog_job_openings USING btree (primary_company_id, normalized_title);
-
-
---
--- Name: idx_market_openings_lifecycle; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_openings_lifecycle ON public.market_catalog_job_openings USING btree (lifecycle_state);
-
-
---
--- Name: idx_market_openings_primary_company; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_openings_primary_company ON public.market_catalog_job_openings USING btree (primary_company_id);
-
-
---
--- Name: idx_market_parties_company; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_parties_company ON public.market_catalog_opening_parties USING btree (company_id);
-
-
---
--- Name: idx_market_parties_opening; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_parties_opening ON public.market_catalog_opening_parties USING btree (job_opening_id);
-
-
---
--- Name: idx_market_parties_opening_role_company; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_parties_opening_role_company ON public.market_catalog_opening_parties USING btree (job_opening_id, role, company_id);
-
-
---
--- Name: idx_market_postings_lifecycle; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_postings_lifecycle ON public.market_catalog_job_postings USING btree (lifecycle_state);
-
-
---
--- Name: idx_market_postings_opening; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_postings_opening ON public.market_catalog_job_postings USING btree (job_opening_id);
-
-
---
--- Name: idx_market_postings_publisher; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_postings_publisher ON public.market_catalog_job_postings USING btree (publisher_company_id);
-
-
---
--- Name: idx_market_postings_source_apply_digest; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_postings_source_apply_digest ON public.market_catalog_job_postings USING btree (source_key, application_url_digest) WHERE (application_url_digest IS NOT NULL);
-
-
---
--- Name: idx_market_postings_source_external; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_market_postings_source_external ON public.market_catalog_job_postings USING btree (source_key, external_id) WHERE (external_id IS NOT NULL);
-
-
---
--- Name: idx_market_postings_source_last_present; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_postings_source_last_present ON public.market_catalog_job_postings USING btree (source_key, last_confirmed_present_at);
-
-
---
--- Name: idx_market_postings_source_url_digest; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE UNIQUE INDEX idx_market_postings_source_url_digest ON public.market_catalog_job_postings USING btree (source_key, canonical_url_digest) WHERE (canonical_url_digest IS NOT NULL);
-
-
---
--- Name: idx_market_resolutions_from_opening; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_resolutions_from_opening ON public.market_catalog_resolution_decisions USING btree (from_job_opening_id);
-
-
---
--- Name: idx_market_resolutions_posting; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_resolutions_posting ON public.market_catalog_resolution_decisions USING btree (job_posting_id);
-
-
---
--- Name: idx_market_resolutions_posting_decided; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_resolutions_posting_decided ON public.market_catalog_resolution_decisions USING btree (job_posting_id, decided_at);
-
-
---
--- Name: idx_market_resolutions_to_opening; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_market_resolutions_to_opening ON public.market_catalog_resolution_decisions USING btree (to_job_opening_id);
 
 
 --
@@ -1886,14 +1597,6 @@ ALTER TABLE ONLY public.meetings
 
 
 --
--- Name: market_catalog_opening_parties fk_rails_0970411655; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.market_catalog_opening_parties
-    ADD CONSTRAINT fk_rails_0970411655 FOREIGN KEY (job_opening_id) REFERENCES public.market_catalog_job_openings(id);
-
-
---
 -- Name: competency_assessment_evidences fk_rails_0ccb9d4f75; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1907,14 +1610,6 @@ ALTER TABLE ONLY public.competency_assessment_evidences
 
 ALTER TABLE ONLY public.client_decisions
     ADD CONSTRAINT fk_rails_144478fa83 FOREIGN KEY (decided_by_id) REFERENCES public.users(id);
-
-
---
--- Name: market_catalog_job_postings fk_rails_1818d214a1; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.market_catalog_job_postings
-    ADD CONSTRAINT fk_rails_1818d214a1 FOREIGN KEY (publisher_company_id) REFERENCES public.market_catalog_companies(id);
 
 
 --
@@ -2054,14 +1749,6 @@ ALTER TABLE ONLY public.applications
 
 
 --
--- Name: market_catalog_resolution_decisions fk_rails_72d0eac1e5; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.market_catalog_resolution_decisions
-    ADD CONSTRAINT fk_rails_72d0eac1e5 FOREIGN KEY (from_job_opening_id) REFERENCES public.market_catalog_job_openings(id);
-
-
---
 -- Name: sessions fk_rails_758836b4f0; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2094,14 +1781,6 @@ ALTER TABLE ONLY public.tasks
 
 
 --
--- Name: market_catalog_job_postings fk_rails_78ac82fbc3; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.market_catalog_job_postings
-    ADD CONSTRAINT fk_rails_78ac82fbc3 FOREIGN KEY (job_opening_id) REFERENCES public.market_catalog_job_openings(id);
-
-
---
 -- Name: applications fk_rails_7a1f279622; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2123,14 +1802,6 @@ ALTER TABLE ONLY public.meetings
 
 ALTER TABLE ONLY public.application_stage_events
     ADD CONSTRAINT fk_rails_7ba7495aa5 FOREIGN KEY (application_id) REFERENCES public.applications(id);
-
-
---
--- Name: market_catalog_resolution_decisions fk_rails_9597b5f4af; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.market_catalog_resolution_decisions
-    ADD CONSTRAINT fk_rails_9597b5f4af FOREIGN KEY (to_job_opening_id) REFERENCES public.market_catalog_job_openings(id);
 
 
 --
@@ -2318,14 +1989,6 @@ ALTER TABLE ONLY public.projects
 
 
 --
--- Name: market_catalog_job_openings fk_rails_d8e76a4cc2; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.market_catalog_job_openings
-    ADD CONSTRAINT fk_rails_d8e76a4cc2 FOREIGN KEY (primary_company_id) REFERENCES public.market_catalog_companies(id);
-
-
---
 -- Name: sourcing_briefs fk_rails_e2172b36d3; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2339,22 +2002,6 @@ ALTER TABLE ONLY public.sourcing_briefs
 
 ALTER TABLE ONLY public.application_stage_events
     ADD CONSTRAINT fk_rails_e428f967f8 FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
-
-
---
--- Name: market_catalog_opening_parties fk_rails_e8d2d60ff9; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.market_catalog_opening_parties
-    ADD CONSTRAINT fk_rails_e8d2d60ff9 FOREIGN KEY (company_id) REFERENCES public.market_catalog_companies(id);
-
-
---
--- Name: market_catalog_resolution_decisions fk_rails_edffbe4590; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.market_catalog_resolution_decisions
-    ADD CONSTRAINT fk_rails_edffbe4590 FOREIGN KEY (job_posting_id) REFERENCES public.market_catalog_job_postings(id);
 
 
 --
@@ -2653,5 +2300,30 @@ ALTER TABLE public.workspace_invitations ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict bBYrgdiBgHhf3H5nUijhvA8MEryNIIkSgUKuKAxkCr6MN8LAac4SzHL20NRId0Y
+SET search_path TO "$user", public;
+
+INSERT INTO "schema_migrations" (version) VALUES
+('20260901194000'),
+('20260729000000'),
+('20260723211000'),
+('20260723210000'),
+('20260723200000'),
+('20260723190000'),
+('20260723180000'),
+('20260723170000'),
+('20260723160000'),
+('20260723150000'),
+('20260723140000'),
+('20260723130000'),
+('20260723120000'),
+('20260723110000'),
+('20260723100000'),
+('20260723090000'),
+('20260723080000'),
+('20260723070000'),
+('20260723060000'),
+('20260723050000'),
+('20260723040000'),
+('20250801153828'),
+('20250801153827');
 
