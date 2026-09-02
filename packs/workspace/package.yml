@@ -1,6 +1,11 @@
 enforce_dependencies: strict
 dependencies:
-  - "."
+  - packs/platform
 metadata:
   bounded_context: workspace
-  migration_note: "Temporary dependency on the legacy donor shell while Organization and shared Rails primitives are still extracted."
+  owns:
+    - Organization
+    - User
+    - Membership
+    - Current
+    - WorkspaceContext
