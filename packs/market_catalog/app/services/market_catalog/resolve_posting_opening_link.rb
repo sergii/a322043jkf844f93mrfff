@@ -30,11 +30,14 @@ module MarketCatalog
     end
 
     def call
-      JobPosting.transaction do
+      affected_opening_ids = []
+
+      decision = JobPosting.transaction do
         posting.lock!
         previous_opening = posting.job_opening
         next if previous_opening == opening
 
+        affected_opening_ids = [ previous_opening&.id, opening&.id ].compact.uniq
         decision_type = transition_type(previous_opening, opening)
         posting.update!(job_opening: opening)
 
@@ -51,6 +54,9 @@ module MarketCatalog
           metadata:
         )
       end
+
+      affected_opening_ids.each { ReconcileOpeningLifecycle.call(opening_id: _1) }
+      decision
     end
 
     private

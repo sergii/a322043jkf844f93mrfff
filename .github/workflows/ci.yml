@@ -22,6 +22,8 @@ jobs:
 
   package_boundaries:
     runs-on: ubuntu-latest
+    env:
+      RAILS_ENV: test
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -29,6 +31,8 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           bundler-cache: true
+      - name: Validate LMX configuration contract
+        run: bin/rails lmx:config:validate
       - name: Validate package system
         run: bin/packwerk validate
       - name: Check package dependencies

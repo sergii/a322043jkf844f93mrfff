@@ -1,0 +1,39 @@
+version: 1
+
+sources:
+  - id: dou
+    name: DOU Jobs
+    base_url: https://jobs.dou.ua/
+    enabled: true
+    market: ua
+    kind: job_board
+    acquisition:
+      - type: http_html
+        preference: primary
+        status: evaluate
+      - type: browser
+        preference: fallback
+        status: evaluate
+    access:
+      requires_auth: false
+      robots_review: pending
+      terms_review: pending
+      rate_limit: unknown
+
+source_families:
+  - id: company_careers
+    name: Direct company career pages
+    kind: company_career
+    enabled: true
+    platforms: [greenhouse, lever]
+    acquisition:
+      - type: http_html
+        preference: primary
+        status: evaluate
+
+ingress_interfaces:
+  - manual
+  - api
+  - webhook
+  - mcp
+  - import
