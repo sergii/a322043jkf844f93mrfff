@@ -87,6 +87,7 @@ class CreatePlatformReliabilityFoundation < ActiveRecord::Migration[8.1]
       t.string :status, null: false, default: "pending"
       t.integer :attempt_count, null: false, default: 0
       t.datetime :available_at, null: false
+      t.datetime :publishing_started_at
       t.datetime :published_at
       t.jsonb :last_error
       t.timestamps
@@ -97,6 +98,8 @@ class CreatePlatformReliabilityFoundation < ActiveRecord::Migration[8.1]
       name: "index_platform_outbox_on_workspace_event"
     add_index :platform_outbox_messages, %i[organization_id status available_at],
       name: "index_platform_outbox_on_workspace_delivery"
+    add_index :platform_outbox_messages, %i[organization_id status publishing_started_at],
+      name: "index_platform_outbox_on_workspace_claim"
 
     TABLES.each do |table|
       execute <<~SQL
