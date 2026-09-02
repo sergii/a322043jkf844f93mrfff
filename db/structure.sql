@@ -408,6 +408,42 @@ CREATE TABLE public.ingestion_records (
 
 
 --
+-- Name: intelligence_match_assessments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.intelligence_match_assessments (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    organization_id uuid NOT NULL,
+    candidate_id character varying NOT NULL,
+    candidate_profile_version_id character varying CONSTRAINT intelligence_match_assessme_candidate_profile_version__not_null NOT NULL,
+    candidate_profile_content_digest character varying CONSTRAINT intelligence_match_assessme_candidate_profile_content__not_null NOT NULL,
+    job_opening_id character varying NOT NULL,
+    opening_evidence_cutoff timestamp(6) without time zone NOT NULL,
+    opening_snapshot jsonb DEFAULT '{}'::jsonb NOT NULL,
+    version_number integer NOT NULL,
+    opportunity_score numeric(12,4),
+    action_priority numeric(12,4),
+    score_details jsonb DEFAULT '{}'::jsonb NOT NULL,
+    strengths jsonb DEFAULT '[]'::jsonb NOT NULL,
+    gaps jsonb DEFAULT '[]'::jsonb NOT NULL,
+    risks jsonb DEFAULT '[]'::jsonb NOT NULL,
+    recommendation text,
+    interview_angles jsonb DEFAULT '[]'::jsonb NOT NULL,
+    evidence_references jsonb DEFAULT '[]'::jsonb NOT NULL,
+    scoring_policy_version character varying NOT NULL,
+    processor_kind character varying,
+    processor_key character varying,
+    processor_version character varying,
+    processor_model_name character varying,
+    model_version character varying,
+    generated_at timestamp(6) without time zone NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL
+);
+
+ALTER TABLE ONLY public.intelligence_match_assessments FORCE ROW LEVEL SECURITY;
+
+
+--
 -- Name: interview_assessments; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -623,7 +659,7 @@ CREATE TABLE public.market_catalog_posting_snapshots (
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
     CONSTRAINT market_snapshots_content_digest_check CHECK (((content_digest)::text ~ '^[0-9a-f]{64}$'::text)),
-    CONSTRAINT market_snapshots_presence_state_check CHECK (((presence_state)::text = ANY ((ARRAY['present'::character varying, 'missing'::character varying, 'explicit_closed'::character varying, 'unknown'::character varying])::text[])))
+    CONSTRAINT market_snapshots_presence_state_check CHECK (((presence_state)::text = ANY (ARRAY[('present'::character varying)::text, ('missing'::character varying)::text, ('explicit_closed'::character varying)::text, ('unknown'::character varying)::text])))
 );
 
 
@@ -1064,6 +1100,14 @@ ALTER TABLE ONLY public.evidences
 
 ALTER TABLE ONLY public.ingestion_records
     ADD CONSTRAINT ingestion_records_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: intelligence_match_assessments intelligence_match_assessments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.intelligence_match_assessments
+    ADD CONSTRAINT intelligence_match_assessments_pkey PRIMARY KEY (id);
 
 
 --
@@ -1956,6 +2000,27 @@ CREATE UNIQUE INDEX index_language_proficiencies_on_candidate_id_and_language_co
 --
 
 CREATE INDEX index_language_proficiencies_on_organization_id ON public.language_proficiencies USING btree (organization_id);
+
+
+--
+-- Name: index_match_assessments_on_workspace_candidate_opening_created; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_match_assessments_on_workspace_candidate_opening_created ON public.intelligence_match_assessments USING btree (organization_id, candidate_id, job_opening_id, created_at);
+
+
+--
+-- Name: index_match_assessments_on_workspace_candidate_opening_version; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_match_assessments_on_workspace_candidate_opening_version ON public.intelligence_match_assessments USING btree (organization_id, candidate_id, job_opening_id, version_number);
+
+
+--
+-- Name: index_match_assessments_on_workspace_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_match_assessments_on_workspace_id ON public.intelligence_match_assessments USING btree (organization_id, id);
 
 
 --
@@ -2992,6 +3057,12 @@ ALTER TABLE public.competency_assessments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.evidences ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: intelligence_match_assessments; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.intelligence_match_assessments ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: interview_assessments; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3119,6 +3190,13 @@ CREATE POLICY organization_isolation ON public.evidences USING ((organization_id
 
 
 --
+-- Name: intelligence_match_assessments organization_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY organization_isolation ON public.intelligence_match_assessments USING ((organization_id = (current_setting('app.current_organization'::text, true))::uuid)) WITH CHECK ((organization_id = (current_setting('app.current_organization'::text, true))::uuid));
+
+
+--
 -- Name: interview_assessments organization_isolation; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -3219,6 +3297,7 @@ ALTER TABLE public.workspace_invitations ENABLE ROW LEVEL SECURITY;
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260902185000'),
 ('20260902100000'),
 ('20260902013000'),
 ('20260902011700'),
