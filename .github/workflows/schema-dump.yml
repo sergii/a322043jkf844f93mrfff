@@ -3,6 +3,9 @@ name: Schema Dump
 on:
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   dump:
     runs-on: ubuntu-latest
@@ -28,8 +31,10 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - name: Checkout code
+      - name: Checkout feature branch
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -62,6 +67,16 @@ jobs:
               end
             end
           '
+      - name: Commit generated structure
+        run: |
+          if git diff --quiet -- db/structure.sql; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add db/structure.sql
+          git commit -m "Update generated database structure"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
       - name: Upload generated structure
         uses: actions/upload-artifact@v7
         with:
