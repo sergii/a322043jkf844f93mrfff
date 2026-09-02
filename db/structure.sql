@@ -582,6 +582,31 @@ CREATE TABLE public.market_catalog_opening_parties (
 
 
 --
+-- Name: market_catalog_posting_snapshots; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.market_catalog_posting_snapshots (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    job_posting_id uuid NOT NULL,
+    source_observation_id uuid NOT NULL,
+    observed_at timestamp(6) without time zone NOT NULL,
+    presence_state character varying DEFAULT 'unknown'::character varying NOT NULL,
+    title character varying,
+    description_fingerprint character varying,
+    source_published_at timestamp(6) without time zone,
+    source_updated_at timestamp(6) without time zone,
+    facts jsonb DEFAULT '{}'::jsonb NOT NULL,
+    content_digest character varying NOT NULL,
+    normalizer_key character varying NOT NULL,
+    normalizer_version character varying NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    CONSTRAINT market_snapshots_content_digest_check CHECK (((content_digest)::text ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT market_snapshots_presence_state_check CHECK (((presence_state)::text = ANY ((ARRAY['present'::character varying, 'missing'::character varying, 'explicit_closed'::character varying, 'unknown'::character varying])::text[])))
+);
+
+
+--
 -- Name: market_catalog_resolution_decisions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1028,6 +1053,14 @@ ALTER TABLE ONLY public.market_catalog_opening_parties
 
 
 --
+-- Name: market_catalog_posting_snapshots market_catalog_posting_snapshots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.market_catalog_posting_snapshots
+    ADD CONSTRAINT market_catalog_posting_snapshots_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: market_catalog_resolution_decisions market_catalog_resolution_decisions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1254,6 +1287,27 @@ CREATE INDEX idx_market_resolutions_posting_decided ON public.market_catalog_res
 --
 
 CREATE INDEX idx_market_resolutions_to_opening ON public.market_catalog_resolution_decisions USING btree (to_job_opening_id);
+
+
+--
+-- Name: idx_market_snapshots_posting; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_snapshots_posting ON public.market_catalog_posting_snapshots USING btree (job_posting_id);
+
+
+--
+-- Name: idx_market_snapshots_posting_observed; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_market_snapshots_posting_observed ON public.market_catalog_posting_snapshots USING btree (job_posting_id, observed_at);
+
+
+--
+-- Name: idx_market_snapshots_source_observation; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX idx_market_snapshots_source_observation ON public.market_catalog_posting_snapshots USING btree (source_observation_id);
 
 
 --
@@ -2235,6 +2289,14 @@ ALTER TABLE ONLY public.interview_assessments
 
 
 --
+-- Name: market_catalog_posting_snapshots fk_rails_58192e4af2; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.market_catalog_posting_snapshots
+    ADD CONSTRAINT fk_rails_58192e4af2 FOREIGN KEY (job_posting_id) REFERENCES public.market_catalog_job_postings(id);
+
+
+--
 -- Name: applications fk_rails_618951e727; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2924,6 +2986,7 @@ ALTER TABLE public.workspace_invitations ENABLE ROW LEVEL SECURITY;
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260902100000'),
 ('20260902013000'),
 ('20260902011700'),
 ('20260901194000'),
