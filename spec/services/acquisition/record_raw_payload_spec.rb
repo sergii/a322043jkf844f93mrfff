@@ -43,7 +43,15 @@ RSpec.describe Acquisition::RecordRawPayload, type: :model do
     expect(raw_payload.typed_id).to start_with("raw_payload_")
     expect(raw_payload.content_digest).to eq(Digest::SHA256.hexdigest(body.b))
     expect(raw_payload).to be_readonly
-    expect { raw_payload.update!(body: "changed") }.to raise_error(ActiveRecord::ReadOnlyRecord)
+
+    changed_body = "changed".b
+    expect do
+      raw_payload.update!(
+        body: changed_body,
+        content_digest: Digest::SHA256.hexdigest(changed_body),
+        byte_size: changed_body.bytesize
+      )
+    end.to raise_error(ActiveRecord::ReadOnlyRecord)
   end
 
   it "deduplicates exact retries, including retries after the run becomes terminal" do
