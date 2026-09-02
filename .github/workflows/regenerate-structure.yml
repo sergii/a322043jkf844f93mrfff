@@ -1,0 +1,64 @@
+name: Regenerate structure
+
+on:
+  push:
+    branches: [ chore/regenerate-talent-profile-structure ]
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    env:
+      RAILS_ENV: test
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: lmx
+      POSTGRES_TEST_USER: lmx
+      POSTGRES_PASSWORD: lmx_test
+      POSTGRES_TEST_DATABASE: lmx_test
+    services:
+      postgres:
+        image: postgres:18.4
+        env:
+          POSTGRES_DB: lmx_test
+          POSTGRES_USER: lmx
+          POSTGRES_PASSWORD: lmx_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U lmx -d lmx_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+      - name: Load canonical SQL schema
+        run: bin/rails db:structure:load
+      - name: Apply pending migrations and dump structure
+        run: |
+          bin/rails db:migrate
+          bin/rails db:structure:dump
+      - name: Verify Talent Profile schema
+        run: |
+          grep -q "candidate_profile_versions" db/structure.sql
+          grep -q "candidate_evidences" db/structure.sql
+          grep -q "candidate_profile_version_evidences" db/structure.sql
+          grep -q "20260902011700" db/structure.sql
+      - name: Commit generated structure
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add db/structure.sql
+          if git diff --cached --quiet; then
+            echo "No structure changes generated"
+          else
+            git commit -m "Regenerate structure after Talent Profile migration"
+            git push
+          fi
