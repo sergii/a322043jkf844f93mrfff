@@ -4,8 +4,9 @@ require "rails_helper"
 
 RSpec.describe Acquisition::SourceRegistry, type: :model do
   it "exposes configured source identifiers and acquisition strategies" do
-    expect(described_class.source_ids).to eq([ "dou" ])
+    expect(described_class.source_ids).to eq([ "dou", "djinni" ])
     expect(described_class.enabled?("dou")).to be(true)
+    expect(described_class.enabled?("djinni")).to be(true)
     expect(described_class.acquisition_strategies("dou")).to eq(
       [
         { "type" => "rss", "preference" => "primary", "status" => "active" },
@@ -18,11 +19,18 @@ RSpec.describe Acquisition::SourceRegistry, type: :model do
       "preference" => "primary",
       "status" => "active"
     )
+    expect(described_class.primary_strategy("djinni")).to eq(
+      "type" => "rss",
+      "preference" => "primary",
+      "status" => "active"
+    )
   end
 
   it "keeps personal ranking policy out of source metadata" do
     expect(described_class.fetch("dou")).not_to have_key("weight")
     expect(described_class.fetch("dou")).not_to have_key("lane")
+    expect(described_class.fetch("djinni")).not_to have_key("weight")
+    expect(described_class.fetch("djinni")).not_to have_key("lane")
   end
 
   it "fails explicitly for an unknown source" do

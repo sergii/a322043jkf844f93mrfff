@@ -23,6 +23,28 @@ sources:
       terms_review: pending
       rate_limit: unknown
 
+  - id: djinni
+    name: Djinni
+    base_url: https://djinni.co/
+    enabled: true
+    market: ua
+    kind: job_board
+    acquisition:
+      - type: rss
+        preference: primary
+        status: active
+      - type: http_html
+        preference: fallback
+        status: active
+      - type: browser
+        preference: fallback
+        status: evaluate
+    access:
+      requires_auth: unknown
+      robots_review: pending
+      terms_review: pending
+      rate_limit: unknown
+
 source_families:
   - id: company_careers
     name: Direct company career pages
