@@ -23,7 +23,8 @@ class AcquisitionCollectionJob < ApplicationJob
 
   COLLECTORS = {
     "dou" => Acquisition::Dou,
-    "djinni" => Acquisition::Djinni
+    "djinni" => Acquisition::Djinni,
+    "robota_ua" => Acquisition::RobotaUa
   }.freeze
 
   def perform(source_key)
