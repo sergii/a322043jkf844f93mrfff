@@ -12,6 +12,8 @@ module Platform
       class IdempotencyConflict < Error; end
       class ConcurrencyConflict < Error; end
 
+      DEFAULT_OUTBOX_LEASE = 5.minutes
+
       module_function
 
       def receive_command(
@@ -177,6 +179,7 @@ module Platform
             aggregate_id: normalized_event.fetch(:aggregate_id)
           )
           expected_version = normalized_event.delete(:expected_aggregate_version)
+
           unless current_version == expected_version
             raise ConcurrencyConflict,
               "expected aggregate version #{expected_version}, current version is #{current_version}"
@@ -198,15 +201,26 @@ module Platform
         end
       end
 
-      def claim_outbox(limit: 100, at: Time.current)
+      def claim_outbox(limit: 100, at: Time.current, lease_timeout: DEFAULT_OUTBOX_LEASE)
         unless limit.is_a?(Integer) && limit.positive?
           raise InvalidInput, "limit must be a positive integer"
         end
+        unless lease_timeout.respond_to?(:positive?) && lease_timeout.positive?
+          raise InvalidInput, "lease_timeout must be positive"
+        end
+
+        stale_before = at - lease_timeout
 
         Platform::OutboxMessage.transaction do
           messages = Platform::OutboxMessage
-            .where(status: %w[pending failed])
-            .where(available_at: ..at)
+            .where(
+              "(status IN (?) AND available_at <= ?) OR " \
+                "(status = ? AND publishing_started_at IS NOT NULL AND publishing_started_at <= ?)",
+              %w[pending failed],
+              at,
+              "publishing",
+              stale_before
+            )
             .order(:available_at, :created_at, :id)
             .limit(limit)
             .lock("FOR UPDATE SKIP LOCKED")
@@ -216,6 +230,7 @@ module Platform
             message.update!(
               status: "publishing",
               attempt_count: message.attempt_count + 1,
+              publishing_started_at: at,
               last_error: nil
             )
           end
@@ -227,7 +242,12 @@ module Platform
       def mark_outbox_published(message_id:, published_at: Time.current)
         Platform::OutboxMessage.transaction do
           message = find_outbox!(message_id, lock: true)
-          message.update!(status: "published", published_at:, last_error: nil)
+          message.update!(
+            status: "published",
+            publishing_started_at: nil,
+            published_at:,
+            last_error: nil
+          )
           outbox_snapshot(message)
         end
       end
@@ -238,6 +258,7 @@ module Platform
           message.update!(
             status: "failed",
             available_at: retry_at,
+            publishing_started_at: nil,
             last_error: canonical_json(error)
           )
           outbox_snapshot(message)
@@ -357,7 +378,7 @@ module Platform
       def find_inbox_by_command!(command_id, lock: false)
         relation = Platform::InboxMessage.where(command_id: required_string(command_id, :command_id))
         relation = relation.lock if lock
-        relation.first! 
+        relation.first!
       rescue ActiveRecord::RecordNotFound
         raise NotFound, "command not found"
       end
@@ -469,6 +490,7 @@ module Platform
           status: message.status,
           attempt_count: message.attempt_count,
           available_at: message.available_at,
+          publishing_started_at: message.publishing_started_at,
           published_at: message.published_at,
           last_error: message.last_error&.deep_dup
         )
