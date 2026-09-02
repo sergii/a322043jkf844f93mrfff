@@ -56,23 +56,30 @@ RSpec.describe "MCP candidates.get read path" do
   end
 
   let(:capabilities) { [ "read:candidates" ] }
-  let(:capability_resolver) do
-    resolver_capabilities = capabilities
+  let(:credential_source) do
+    source_capabilities = capabilities
 
     Class.new do
-      define_method(:initialize) do |allowed_capabilities|
-        @allowed_capabilities = allowed_capabilities
+      attr_reader :contexts
+
+      define_method(:initialize) do
+        @contexts = []
       end
 
       define_method(:resolve) do |resolved_context|
-        Integration::Read::CapabilityGrant.new(
+        @contexts << resolved_context
+        {
           workspace_id: resolved_context.workspace_id,
           principal: resolved_context.principal,
           credential: resolved_context.credential,
-          capabilities: @allowed_capabilities
-        )
+          capabilities: source_capabilities
+        }
       end
-    end.new(resolver_capabilities)
+    end.new
+  end
+
+  let(:capability_resolver) do
+    Integration::Read::CredentialCapabilityResolver.new(credential_source:)
   end
 
   let(:candidate_query) do
@@ -127,6 +134,7 @@ RSpec.describe "MCP candidates.get read path" do
       client: "generic-client"
     )
     expect(candidate_api.candidate_ids).to eq([ candidate_id ])
+    expect(credential_source.contexts).to eq([ context ])
     expect(workspace_api.workspace_ids).to eq([ "org_opaque" ])
   end
 
@@ -142,6 +150,7 @@ RSpec.describe "MCP candidates.get read path" do
 
       expect(result[:isError]).to be(true)
       expect(result.dig(:structuredContent, :error, :code)).to eq("unauthorized")
+      expect(credential_source.contexts).to eq([ context ])
       expect(candidate_api.candidate_ids).to be_empty
       expect(workspace_api.workspace_ids).to be_empty
     end
