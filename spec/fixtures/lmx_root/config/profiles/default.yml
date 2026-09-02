@@ -4,6 +4,13 @@ source_priorities:
   dou: { lane: local_fast, weight: 100 }
   company_careers: { lane: remote_specialized, weight: 75 }
 
+acquisition:
+  source_queries:
+    work_ua:
+      - Ruby
+    robota_ua:
+      - Ruby
+
 ranking:
   opportunity_score:
     description: Overall attractiveness independent of immediate application urgency.

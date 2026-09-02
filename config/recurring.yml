@@ -26,6 +26,18 @@ production:
     args: [ "djinni" ]
     schedule: every 10 minutes
 
+  acquisition_work_ua:
+    class: AcquisitionCollectionJob
+    queue: acquisition
+    args: [ "work_ua" ]
+    schedule: every 10 minutes
+
+  acquisition_robota_ua:
+    class: AcquisitionCollectionJob
+    queue: acquisition
+    args: [ "robota_ua" ]
+    schedule: every 10 minutes
+
   acquisition_remoteok:
     class: AcquisitionCollectionJob
     queue: acquisition
