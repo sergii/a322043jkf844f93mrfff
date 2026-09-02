@@ -52,13 +52,14 @@ RSpec.describe Integration::Read::Dispatcher do
     )
   end
 
-  it "publishes the initial versioned read contract names" do
+  it "publishes the versioned read contract names" do
     identifiers = Integration::Read::Contracts.all.map(&:identifier)
 
     expect(identifiers).to contain_exactly(
       "openings.search.v1",
       "openings.get.v1",
       "candidates.get.v1",
+      "matches.get.v1",
       "applications.get.v1"
     )
   end

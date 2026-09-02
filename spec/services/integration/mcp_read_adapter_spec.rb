@@ -43,11 +43,11 @@ RSpec.describe Integration::Mcp::ReadAdapter, type: :model do
     )
   end
 
-  it "publishes the four read tools from the shared contracts" do
+  it "publishes the read tools from the shared contracts" do
     tools = adapter.tools
 
     expect(tools.map { |tool| tool.fetch(:name) }).to eq(
-      [ "openings.search", "openings.get", "candidates.get", "applications.get" ]
+      [ "openings.search", "openings.get", "candidates.get", "matches.get", "applications.get" ]
     )
     expect(tools.find { |tool| tool[:name] == "openings.search" }.fetch(:inputSchema)).to include(
       "type" => "object",

@@ -29,6 +29,20 @@ fetch_opening(opening_id:)
 
 `MarketCatalog::Api` provides this public read surface and exposes `MarketCatalog::Api::NotFound` for failed public resource lookup.
 
+## MatchAssessment read adapter
+
+`Integration::Read::Adapters::MatchesGet` implements `matches.get.v1` through the Intelligence public API:
+
+```ruby
+fetch_match_assessment(workspace_id:, assessment_id:)
+```
+
+The v1 contract is intentionally a resource lookup by opaque MatchAssessment identifier. Integration does not define or recalculate Opportunity Score, Action Priority, strengths, gaps, risks, recommendation, or provenance fields. Those fields remain owned by Intelligence and are passed through as its stable public snapshot.
+
+The adapter enters the owning workspace scope before calling `Intelligence::Api` and passes the same opaque workspace identifier to the public operation. Missing or cross-workspace assessments are normalized from `Intelligence::Api::NotFound` to the Integration `not_found` outcome.
+
+A future ranked/top-matches query should be a separate collection/query contract rather than overloading `matches.get.v1` with search semantics.
+
 ## Application read adapter
 
 `Integration::Read::Adapters::ApplicationsGet` preserves the Integration-side contract expected from canonical Personal CRM:
@@ -72,16 +86,17 @@ By default it composes:
 - `Workspace::Api`
 - `TalentProfile::Api`
 - `MarketCatalog::Api`
+- `Intelligence::Api`
 - an injected server-side credential source
 - `CredentialCapabilityResolver`
 - `CapabilityAuthorization`
 - `PublicApiWorkspaceScope`
-- opening and candidate query adapters
+- opening, candidate, and MatchAssessment query adapters
 - `QueryRouter`
 - `Dispatcher`
 - `Integration::Mcp::ReadAdapter`
 
-The package therefore declares explicit dependencies on Workspace, Talent Profile, and Market Catalog. Cross-package references are limited to their public application APIs.
+The package therefore declares explicit dependencies on Workspace, Talent Profile, Market Catalog, and Intelligence. Cross-package references are limited to their public application APIs.
 
 The public builder still accepts API objects as keyword arguments so tests or alternate compositions can substitute compatible implementations without changing query adapters.
 
@@ -112,10 +127,16 @@ QueryRouter
  |      +--> MarketCatalog::Api
  |
  +--> candidates.get
+ |      |
+ |      +--> Workspace::Api.with_workspace
+ |      |
+ |      +--> TalentProfile::Api
+ |
+ +--> matches.get
         |
         +--> Workspace::Api.with_workspace
         |
-        +--> TalentProfile::Api
+        +--> Intelligence::Api
 ```
 
 `applications.get` is intentionally absent from the router until canonical Personal CRM exists.
@@ -124,4 +145,4 @@ QueryRouter
 
 The low-level adapters accept `not_found_errors:` and normalize only configured owning-package lookup failures to `Integration::Read::Error::NotFound`. Unexpected exceptions are re-raised.
 
-Concrete composition uses only public package errors: `Workspace::Api::NotFound`, `MarketCatalog::Api::NotFound`, and `TalentProfile::Api::NotFound`. ActiveRecord lookup exceptions no longer cross the owning package application boundary or appear in Integration composition.
+Concrete composition uses only public package errors: `Workspace::Api::NotFound`, `MarketCatalog::Api::NotFound`, `TalentProfile::Api::NotFound`, and `Intelligence::Api::NotFound`. ActiveRecord lookup exceptions do not cross owning-package application boundaries or appear in Integration composition.

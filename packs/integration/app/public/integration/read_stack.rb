@@ -8,7 +8,8 @@ module Integration
       credential_source:,
       workspace_api: Workspace::Api,
       candidate_api: TalentProfile::Api,
-      opening_api: MarketCatalog::Api
+      opening_api: MarketCatalog::Api,
+      match_api: Intelligence::Api
     )
       workspace_scope = Read::Adapters::PublicApiWorkspaceScope.new(
         workspace_api:,
@@ -29,6 +30,11 @@ module Integration
             candidate_api:,
             workspace_scope:,
             not_found_errors: [ TalentProfile::Api::NotFound ]
+          ),
+          "matches.get.v1" => Read::Adapters::MatchesGet.new(
+            match_api:,
+            workspace_scope:,
+            not_found_errors: [ Intelligence::Api::NotFound ]
           )
         }
       )
