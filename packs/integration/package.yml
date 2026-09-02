@@ -1,4 +1,7 @@
 enforce_dependencies: strict
-dependencies: []
+dependencies:
+  - packs/market_catalog
+  - packs/talent_profile
+  - packs/workspace
 metadata:
   bounded_context: integration
