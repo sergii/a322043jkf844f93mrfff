@@ -2,17 +2,25 @@
 
 Integration query adapters consume narrow public application APIs from owning bounded contexts. They do not access another package's ActiveRecord models.
 
-## Candidate read adapter
+## Candidate read adapters
 
-`Integration::Read::Adapters::CandidatesGet` implements `candidates.get.v1` through a candidate API that responds to:
+`Integration::Read::Adapters::CandidatesGet` implements `candidates.get.v1` through:
 
 ```ruby
 fetch_candidate(candidate_id:)
 ```
 
-`TalentProfile::Api` provides exactly that operation and returns an immutable snapshot with public typed identifiers. Missing, invalid, or cross-workspace candidate reads surface as `TalentProfile::Api::NotFound` rather than persistence exceptions.
+`Integration::Read::Adapters::CandidateProfileGet` implements `candidates.profile.v1` through:
 
-The adapter itself remains dependency-injected and independently testable. Production composition supplies the owning package public API.
+```ruby
+fetch_latest_profile(candidate_id:)
+```
+
+`TalentProfile::Api` provides both operations and returns immutable snapshots with public typed identifiers. `candidates.profile.v1` means the latest canonical CandidateProfileVersion for the Candidate; it does not accept or infer a historical version ID. Exact historical-version lookup remains available inside the owning public API and can become a separate transport contract if needed.
+
+Missing, invalid, or cross-workspace candidate/profile reads surface as `TalentProfile::Api::NotFound` rather than persistence exceptions. Both candidate operations require `read:candidates`.
+
+The adapters remain dependency-injected and independently testable. Production composition supplies the owning package public API.
 
 ## Opening read adapters
 
@@ -65,7 +73,7 @@ The adapter passes `context.workspace_id` through unchanged. It never resolves `
 
 ```ruby
 workspace_scope.call(context) do
-  candidate_api.fetch_candidate(candidate_id: query.input.fetch(:id))
+  candidate_api.fetch_latest_profile(candidate_id: query.input.fetch(:id))
 end
 ```
 
@@ -91,7 +99,7 @@ By default it composes:
 - `CredentialCapabilityResolver`
 - `CapabilityAuthorization`
 - `PublicApiWorkspaceScope`
-- opening, candidate, and MatchAssessment query adapters
+- opening, candidate, candidate-profile, and MatchAssessment query adapters
 - `QueryRouter`
 - `Dispatcher`
 - `Integration::Mcp::ReadAdapter`
@@ -126,7 +134,7 @@ QueryRouter
  |      |
  |      +--> MarketCatalog::Api
  |
- +--> candidates.get
+ +--> candidates.get / candidates.profile
  |      |
  |      +--> Workspace::Api.with_workspace
  |      |
