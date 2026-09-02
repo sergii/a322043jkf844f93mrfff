@@ -1,25 +1,52 @@
 # Acquisition
 
-The acquisition context owns how LMX learns facts from external and manual sources. It does not decide whether two observations describe the same real-world job opening and it does not own the canonical market catalog.
+The Acquisition bounded context owns how LMX retrieves and preserves external evidence. It does not decide whether two observations describe the same real-world opening and it never mutates Market Catalog aggregates directly.
 
-## SourceObservation
+## Phase 0 persistence contract
 
-`SourceObservation` is the first durable boundary in the ingestion pipeline. It records what a source exposed at a particular time together with provenance needed for later reprocessing.
+The durable chain is:
 
-Properties:
+```text
+SourceRun -> RawPayload -> IngestionRecord -> SourceObservation
+```
 
-- append-only after insertion
-- transport is explicit (`rss`, `http_api`, `http_scrape`, `browser_crawl`, `webhook`, `api_submission`, `manual`, or `import`)
-- raw structured payload is preserved
-- payload content has a deterministic SHA-256 digest
-- retries with the same source identity, observation timestamp, and content are idempotent
-- observing unchanged content at a later time creates another fact, preserving vacancy lifetime evidence
-- source facts remain independent from downstream interpretation
+### SourceRun
 
-The public application entry point is `Acquisition::RecordSourceObservation.call` rather than direct writes from collectors.
+`SourceRun` records one acquisition attempt for a source. It preserves the source key, acquisition transport, start/finish times, collector/adapter/parser versions, counts where meaningful, failure details, and replay/source-health provenance.
 
-## Boundary with market_catalog
+A terminal run is either `succeeded` or `failed`. A successful run with `observed_count = 0` is intentionally different from a failed run. Terminal outcome data is immutable.
 
-A source observation is evidence, not a canonical vacancy. `market_catalog` will consume acquisition facts to resolve companies, openings, postings, cross-source duplicates, lifecycle changes, compensation history, and reopen events.
+Acquisition transports describe how external source evidence was retrieved. They are deliberately distinct from ingress interfaces such as API, webhook, MCP, import, or manual web entry.
 
-Future acquisition entities can include source definitions, adapter health, ingestion records, raw-payload object-storage references, parser runs, and transactional inbox records without changing the meaning of `SourceObservation`.
+### RawPayload
+
+`RawPayload` preserves source material when practical together with a SHA-256 digest, content type, encoding, source URI, capture time, byte size, and provenance.
+
+Pass a `String` when byte-for-byte source material is available. The body is stored as binary data so its digest describes the exact persisted bytes. Structured Ruby/JSON input is serialized deterministically as a pragmatic fallback.
+
+Persisted raw payloads are immutable and can survive parser failure independently of observations. They can also be reused by a later parser version for replay/reprocessing.
+
+### IngestionRecord
+
+`IngestionRecord` records how a raw capture was processed into LMX evidence. It links the source run and raw payload to one or more observations and keeps collector/adapter/parser versions plus provenance. An optional `ingress_interface` records how an external collector or agent submitted evidence to LMX without confusing that interface with the source run's acquisition transport. A newer parser may create a new ingestion record against the same immutable raw payload.
+
+### SourceObservation
+
+`SourceObservation` is immutable evidence of what a source showed at a point in time. It retains source and ingestion timestamps, source IDs/URLs, presence evidence, parser version, raw-payload digest/reference, structured factual output, and metadata.
+
+An observation is not a `JobPosting` and is not a domain event by itself. Reconciliation in Market Catalog consumes observations through an explicit package boundary and decides whether canonical state should change.
+
+## Public application API
+
+Collectors and integrations should use the narrow Acquisition application APIs instead of writing package models directly:
+
+```ruby
+source_run = Acquisition::SourceRuns.start(...)
+raw_payload = Acquisition::RecordRawPayload.call(source_run:, ...)
+observation = Acquisition::RecordSourceObservation.call(source_run:, raw_payload:, ...)
+Acquisition::SourceRuns.succeed(source_run:, observed_count: 0, ...)
+```
+
+`RecordSourceObservation` may also receive raw input directly as a convenience. For collectors that must preserve evidence even when parsing fails, record the `RawPayload` first and then process it.
+
+Failures use `Acquisition::SourceRuns.fail`. Start, completion, raw capture, ingestion, and observation recording are idempotent for the same identity. Reusing an idempotency identity with conflicting evidence raises an explicit conflict rather than silently rewriting history.
