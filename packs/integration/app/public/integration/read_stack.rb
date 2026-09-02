@@ -23,12 +23,12 @@ module Integration
           "openings.get.v1" => Read::Adapters::OpeningsGet.new(
             opening_api:,
             workspace_scope:,
-            not_found_errors: [ ActiveRecord::RecordNotFound ]
+            not_found_errors: [ MarketCatalog::Api::NotFound ]
           ),
           "candidates.get.v1" => Read::Adapters::CandidatesGet.new(
             candidate_api:,
             workspace_scope:,
-            not_found_errors: [ ActiveRecord::RecordNotFound ]
+            not_found_errors: [ TalentProfile::Api::NotFound ]
           )
         }
       )
