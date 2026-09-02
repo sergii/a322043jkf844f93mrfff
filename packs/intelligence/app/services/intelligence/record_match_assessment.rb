@@ -67,7 +67,7 @@ module Intelligence
             processor_kind:,
             processor_key:,
             processor_version:,
-            model_name:,
+            processor_model_name: model_name,
             model_version:,
             generated_at:
           )
@@ -93,7 +93,7 @@ module Intelligence
       def lock_pair!(workspace_uuid:, candidate_id:, job_opening_id:)
         key = [ workspace_uuid, candidate_id, job_opening_id ].join(":")
         connection = MatchAssessment.connection
-        connection.select_value(
+        connection.execute(
           "SELECT pg_advisory_xact_lock(hashtextextended(#{connection.quote(key)}, 0))"
         )
       end
