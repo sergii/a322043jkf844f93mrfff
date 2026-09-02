@@ -10,7 +10,7 @@ Integration query adapters consume narrow public application APIs from owning bo
 fetch_candidate(candidate_id:)
 ```
 
-`TalentProfile::Api` provides exactly that operation and returns an immutable snapshot with public typed identifiers.
+`TalentProfile::Api` provides exactly that operation and returns an immutable snapshot with public typed identifiers. Missing, invalid, or cross-workspace candidate reads surface as `TalentProfile::Api::NotFound` rather than persistence exceptions.
 
 The adapter itself remains dependency-injected and independently testable. Production composition supplies the owning package public API.
 
@@ -27,7 +27,7 @@ fetch_opening(opening_id:)
 
 `opening_id` remains an opaque public identifier. Integration never parses it into an owning-package primary key.
 
-`MarketCatalog::Api` provides this public read surface.
+`MarketCatalog::Api` provides this public read surface and exposes `MarketCatalog::Api::NotFound` for failed public resource lookup.
 
 ## Application read adapter
 
@@ -122,6 +122,6 @@ QueryRouter
 
 ## Not-found mapping
 
-The low-level adapters accept `not_found_errors:` and normalize only configured lookup failures to `Integration::Read::Error::NotFound`. Unexpected exceptions are re-raised.
+The low-level adapters accept `not_found_errors:` and normalize only configured owning-package lookup failures to `Integration::Read::Error::NotFound`. Unexpected exceptions are re-raised.
 
-The current concrete composition maps `Workspace::Api::NotFound` for workspace lookup and the current ActiveRecord-backed owning API lookup error for Market Catalog and Talent Profile. This framework-specific mapping is isolated to composition rather than query-adapter logic and can be replaced when owning APIs expose stable public not-found errors.
+Concrete composition uses only public package errors: `Workspace::Api::NotFound`, `MarketCatalog::Api::NotFound`, and `TalentProfile::Api::NotFound`. ActiveRecord lookup exceptions no longer cross the owning package application boundary or appear in Integration composition.

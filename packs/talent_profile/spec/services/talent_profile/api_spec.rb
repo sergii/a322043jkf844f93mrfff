@@ -98,7 +98,7 @@ RSpec.describe TalentProfile::Api do
     expect(accepted.fetch(:accepted_at)).to be_present
   end
 
-  it "rejects cross-workspace Candidate access through the public API" do
+  it "rejects cross-workspace Candidate access through the stable public error" do
     candidate = WorkspaceContext.with(workspace) do
       described_class.create_candidate(first_name: "Workspace", last_name: "One")
     end
@@ -107,7 +107,15 @@ RSpec.describe TalentProfile::Api do
       WorkspaceContext.with(other_workspace) do
         described_class.fetch_candidate(candidate_id: candidate.dig(:candidate, :id))
       end
-    end.to raise_error(ActiveRecord::RecordNotFound)
+    end.to raise_error(described_class::NotFound, "candidate not found")
+  end
+
+  it "normalizes invalid Candidate identifiers to the stable public error" do
+    expect do
+      WorkspaceContext.with(workspace) do
+        described_class.fetch_candidate(candidate_id: "candidate_missing")
+      end
+    end.to raise_error(described_class::NotFound, "candidate not found")
   end
 
   it "rejects linking a Candidate to a User who is not a member of the workspace" do

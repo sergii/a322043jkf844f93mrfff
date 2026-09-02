@@ -2,6 +2,9 @@
 
 module TalentProfile
   module Api
+    class Error < StandardError; end
+    class NotFound < Error; end
+
     module_function
 
     def create_candidate(**attributes)
@@ -28,6 +31,8 @@ module TalentProfile
       candidate_snapshot(candidate).merge(
         profile_version: candidate.latest_profile_version && profile_version_snapshot(candidate.latest_profile_version)
       ).freeze
+    rescue ActiveRecord::RecordNotFound
+      raise NotFound, "candidate not found"
     end
 
     def fetch_profile_version(candidate_id:, profile_version_id:)
@@ -37,6 +42,8 @@ module TalentProfile
       version = CandidateProfileVersion.for_organization(workspace).find_by!(id: version_uuid, candidate_id: candidate_uuid)
 
       profile_version_snapshot(version)
+    rescue ActiveRecord::RecordNotFound
+      raise NotFound, "candidate profile version not found"
     end
 
     def candidate_snapshot(candidate)
