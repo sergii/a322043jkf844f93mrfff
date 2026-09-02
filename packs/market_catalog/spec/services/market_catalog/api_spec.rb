@@ -140,4 +140,14 @@ RSpec.describe MarketCatalog::Api, type: :model do
     )
     expect(result.fetch(:job_posting_ids)).to eq([ posting.typed_id ])
   end
+
+  it "normalizes missing or invalid read identifiers to the public not-found error" do
+    expect do
+      described_class.fetch_opening(opening_id: "opening_missing")
+    end.to raise_error(described_class::NotFound, "resource not found")
+
+    expect do
+      described_class.fetch_company(company_id: "not-a-company-id")
+    end.to raise_error(described_class::NotFound, "resource not found")
+  end
 end
