@@ -26,6 +26,13 @@ module Integration
           required_capability: "read:candidates"
         ),
         Contract.new(
+          name: "matches.get",
+          version: 1,
+          request_kind: :get,
+          response_kind: :resource,
+          required_capability: "read:matches"
+        ),
+        Contract.new(
           name: "applications.get",
           version: 1,
           request_kind: :get,
