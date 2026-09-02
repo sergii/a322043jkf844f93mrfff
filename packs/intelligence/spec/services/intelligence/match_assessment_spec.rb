@@ -1,8 +1,12 @@
 # frozen_string_literal: true
 
 require "rails_helper"
+require "pg"
 
 RSpec.describe "Intelligence MatchAssessment core", type: :model do
+  INTELLIGENCE_RLS_RUNTIME_ROLE = ENV.fetch("POSTGRES_RLS_TEST_USER", "lmx_rls_test")
+  INTELLIGENCE_RLS_RUNTIME_PASSWORD = ENV.fetch("POSTGRES_RLS_TEST_PASSWORD", "lmx_rls_test")
+
   let(:connection) { ActiveRecord::Base.connection }
   let(:workspace_uuid) { SecureRandom.uuid }
   let(:workspace_id) { TypeID.from_uuid("org", workspace_uuid).to_s }
@@ -36,6 +40,10 @@ RSpec.describe "Intelligence MatchAssessment core", type: :model do
   end
   let(:talent_api) { double("TalentProfileApi", fetch_profile_version: profile_snapshot) }
   let(:market_api) { double("MarketCatalogApi", fetch_opening: opening_snapshot) }
+
+  before(:context) do
+    provision_intelligence_runtime_role!
+  end
 
   around do |example|
     previous = connection.select_value("SELECT current_setting('app.current_organization', true)")
@@ -114,15 +122,33 @@ RSpec.describe "Intelligence MatchAssessment core", type: :model do
     assessment = record_assessment
     other_workspace_uuid = SecureRandom.uuid
     other_workspace_id = TypeID.from_uuid("org", other_workspace_uuid).to_s
-    set_workspace(other_workspace_uuid)
+    runtime_connection = PG.connect(
+      **connection_options.merge(
+        user: INTELLIGENCE_RLS_RUNTIME_ROLE,
+        password: INTELLIGENCE_RLS_RUNTIME_PASSWORD
+      )
+    )
 
-    expect(Intelligence::MatchAssessment.find_by(id: assessment.id)).to be_nil
+    runtime_connection.exec_params(
+      "SELECT set_config('app.current_organization', $1, false)",
+      [ workspace_uuid ]
+    )
+    expect(runtime_assessment_ids(runtime_connection)).to include(assessment.id)
+
+    runtime_connection.exec_params(
+      "SELECT set_config('app.current_organization', $1, false)",
+      [ other_workspace_uuid ]
+    )
+    expect(runtime_assessment_ids(runtime_connection)).not_to include(assessment.id)
+
     expect do
       Intelligence::Api.fetch_match_assessment(
         workspace_id: other_workspace_id,
         assessment_id: assessment.typed_id
       )
     end.to raise_error(Intelligence::Api::NotFound)
+  ensure
+    runtime_connection&.close
   end
 
   private
@@ -152,5 +178,43 @@ RSpec.describe "Intelligence MatchAssessment core", type: :model do
     connection.select_value(
       "SELECT set_config('app.current_organization', #{connection.quote(uuid.to_s)}, false)"
     )
+  end
+
+  def provision_intelligence_runtime_role!
+    owner = ActiveRecord::Base.connection
+    role = owner.quote_column_name(INTELLIGENCE_RLS_RUNTIME_ROLE)
+    password = owner.quote(INTELLIGENCE_RLS_RUNTIME_PASSWORD)
+    database = owner.quote_column_name(connection_options.fetch(:dbname))
+
+    owner.execute(<<~SQL)
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = #{owner.quote(INTELLIGENCE_RLS_RUNTIME_ROLE)}) THEN
+          CREATE ROLE #{role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+        END IF;
+      END
+      $$;
+    SQL
+    owner.execute(
+      "ALTER ROLE #{role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS PASSWORD #{password}"
+    )
+    owner.execute("GRANT CONNECT ON DATABASE #{database} TO #{role}")
+    owner.execute("GRANT USAGE ON SCHEMA public TO #{role}")
+    owner.execute("GRANT SELECT ON intelligence_match_assessments TO #{role}")
+  end
+
+  def connection_options
+    config = ActiveRecord::Base.connection_db_config.configuration_hash
+    {
+      host: config.fetch(:host),
+      port: config.fetch(:port),
+      dbname: config.fetch(:database),
+      user: config.fetch(:username),
+      password: config.fetch(:password)
+    }
+  end
+
+  def runtime_assessment_ids(runtime_connection)
+    runtime_connection.exec("SELECT id FROM intelligence_match_assessments ORDER BY id").map { _1.fetch("id") }
   end
 end
