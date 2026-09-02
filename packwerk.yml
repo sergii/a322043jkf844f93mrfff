@@ -1,3 +1,4 @@
 cache: true
 require:
+  - sorbet-runtime
   - packwerk/privacy/checker
