@@ -5,7 +5,7 @@ require "rails_helper"
 RSpec.describe "MCP candidates.get read path" do
   let(:context) do
     Integration::Mcp::ContextFactory.new.call(
-      workspace_id: "workspace_opaque",
+      workspace_id: "org_opaque",
       principal: "user:serhii",
       credential: "credential_opaque",
       actor: "human:serhii",
@@ -36,19 +36,23 @@ RSpec.describe "MCP candidates.get read path" do
     end.new
   end
 
-  let(:workspace_scope) do
+  let(:workspace_api) do
     Class.new do
-      attr_reader :contexts
+      attr_reader :workspace_ids
 
       def initialize
-        @contexts = []
+        @workspace_ids = []
       end
 
-      def call(context)
-        @contexts << context
+      def with_workspace(workspace_id:)
+        @workspace_ids << workspace_id
         yield
       end
     end.new
+  end
+
+  let(:workspace_scope) do
+    Integration::Read::Adapters::PublicApiWorkspaceScope.new(workspace_api:)
   end
 
   let(:capabilities) { [ "read:candidates" ] }
@@ -116,14 +120,14 @@ RSpec.describe "MCP candidates.get read path" do
       adapter: "talent_profile.public_api"
     )
     expect(result.dig(:structuredContent, :context)).to include(
-      workspace_id: "workspace_opaque",
+      workspace_id: "org_opaque",
       actor: "human:serhii",
       executor: "agent:generic",
       interface: "mcp",
       client: "generic-client"
     )
     expect(candidate_api.candidate_ids).to eq([ candidate_id ])
-    expect(workspace_scope.contexts).to eq([ context ])
+    expect(workspace_api.workspace_ids).to eq([ "org_opaque" ])
   end
 
   context "without the required capability" do
@@ -139,7 +143,7 @@ RSpec.describe "MCP candidates.get read path" do
       expect(result[:isError]).to be(true)
       expect(result.dig(:structuredContent, :error, :code)).to eq("unauthorized")
       expect(candidate_api.candidate_ids).to be_empty
-      expect(workspace_scope.contexts).to be_empty
+      expect(workspace_api.workspace_ids).to be_empty
     end
   end
 end
