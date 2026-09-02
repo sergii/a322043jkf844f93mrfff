@@ -1,1 +1,3 @@
 cache: true
+require:
+  - packwerk/privacy/checker
