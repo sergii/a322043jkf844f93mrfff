@@ -56,7 +56,13 @@ module MarketCatalog
     end
 
     def projected_closed_at(postings)
-      postings.filter_map(&:missing_since).max || opening.closed_at
+      postings.filter_map { explicit_closure_observed_at(_1) }.max || opening.closed_at
+    end
+
+    def explicit_closure_observed_at(posting)
+      relation = posting.snapshots.where(presence_state: "explicit_closed")
+      relation = relation.where("observed_at >= ?", posting.missing_since) if posting.missing_since
+      relation.maximum(:observed_at)
     end
 
     def find_record(klass, value, typed_prefix)
