@@ -40,11 +40,11 @@ jobs:
         with:
           bundler-cache: true
       - name: Load canonical SQL schema
-        run: bin/rails db:structure:load
+        run: bin/rails db:schema:load
       - name: Apply pending migrations and dump structure
         run: |
           bin/rails db:migrate
-          bin/rails db:structure:dump
+          bin/rails db:schema:dump
       - name: Verify Talent Profile schema
         run: |
           grep -q "candidate_profile_versions" db/structure.sql
