@@ -1,3 +1,12 @@
+--
+-- PostgreSQL database dump
+--
+
+\restrict 09V5mGpKFQWdGgxYen3VnWXYuKRiuUH0ROC0Z2WZPEMbA4qsvKDyb5Jyu9puWfO
+
+-- Dumped from database version 18.4 (Debian 18.4-1.pgdg13+1)
+-- Dumped by pg_dump version 18.4 (Debian 18.4-1.pgdg13+1)
+
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -119,12 +128,12 @@ ALTER SEQUENCE public.active_storage_variant_records_id_seq OWNED BY public.acti
 
 CREATE TABLE public.application_stage_events (
     id uuid DEFAULT uuidv7() NOT NULL,
-    application_id uuid NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    from_stage character varying,
-    occurred_at timestamp(6) without time zone NOT NULL,
     organization_id uuid NOT NULL,
+    application_id uuid NOT NULL,
+    from_stage character varying,
     to_stage character varying NOT NULL,
+    occurred_at timestamp(6) without time zone NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     moved_by_id uuid
 );
@@ -138,11 +147,11 @@ ALTER TABLE ONLY public.application_stage_events FORCE ROW LEVEL SECURITY;
 
 CREATE TABLE public.applications (
     id uuid DEFAULT uuidv7() NOT NULL,
-    candidate_id uuid NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    job_id uuid NOT NULL,
     organization_id uuid NOT NULL,
+    candidate_id uuid NOT NULL,
+    job_id uuid NOT NULL,
     stage character varying DEFAULT 'sourced'::character varying NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     sourced_by_id uuid,
     client_visible boolean DEFAULT false NOT NULL,
@@ -246,26 +255,26 @@ ALTER TABLE ONLY public.candidate_profile_versions FORCE ROW LEVEL SECURITY;
 
 CREATE TABLE public.candidates (
     id uuid DEFAULT uuidv7() NOT NULL,
-    availability character varying,
+    organization_id uuid NOT NULL,
+    first_name character varying NOT NULL,
+    last_name character varying NOT NULL,
+    email character varying,
+    location character varying,
+    time_zone character varying,
+    source character varying,
     consent_status character varying DEFAULT 'unknown'::character varying NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
-    email character varying,
-    english_level character varying,
-    first_name character varying NOT NULL,
-    github_url character varying,
-    last_name character varying NOT NULL,
-    linkedin_url character varying,
-    location character varying,
-    notes text,
-    notice_period character varying,
-    organization_id uuid NOT NULL,
-    salary_expectation character varying,
-    skills character varying[] DEFAULT '{}'::character varying[] NOT NULL,
-    source character varying,
-    tags character varying[] DEFAULT '{}'::character varying[] NOT NULL,
-    time_zone character varying,
     updated_at timestamp(6) without time zone NOT NULL,
+    linkedin_url character varying,
+    github_url character varying,
+    english_level character varying,
+    salary_expectation character varying,
+    availability character varying,
+    notice_period character varying,
     work_authorization character varying,
+    skills character varying[] DEFAULT '{}'::character varying[] NOT NULL,
+    tags character varying[] DEFAULT '{}'::character varying[] NOT NULL,
+    notes text,
     erased_at timestamp(6) without time zone,
     linked_user_id uuid
 );
@@ -279,9 +288,9 @@ ALTER TABLE ONLY public.candidates FORCE ROW LEVEL SECURITY;
 
 CREATE TABLE public.client_companies (
     id uuid DEFAULT uuidv7() NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    name character varying NOT NULL,
     organization_id uuid NOT NULL,
+    name character varying NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL
 );
 
@@ -359,7 +368,7 @@ CREATE TABLE public.competency_assessments (
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     CONSTRAINT competency_assessments_confidence_check CHECK (((confidence IS NULL) OR ((confidence >= (0)::numeric) AND (confidence <= (1)::numeric)))),
-    CONSTRAINT competency_assessments_status_check CHECK (((status)::text = ANY (ARRAY[('not_assessed'::character varying)::text, ('insufficient_evidence'::character varying)::text, ('weak'::character varying)::text, ('demonstrated'::character varying)::text])))
+    CONSTRAINT competency_assessments_status_check CHECK (((status)::text = ANY ((ARRAY['not_assessed'::character varying, 'insufficient_evidence'::character varying, 'weak'::character varying, 'demonstrated'::character varying])::text[])))
 );
 
 ALTER TABLE ONLY public.competency_assessments FORCE ROW LEVEL SECURITY;
@@ -380,7 +389,7 @@ CREATE TABLE public.evidences (
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     CONSTRAINT evidences_confidence_check CHECK (((confidence IS NULL) OR ((confidence >= (0)::numeric) AND (confidence <= (1)::numeric)))),
-    CONSTRAINT evidences_source_type_check CHECK (((source_type)::text = ANY (ARRAY[('transcript'::character varying)::text, ('interviewer_note'::character varying)::text, ('resume'::character varying)::text, ('live_coding'::character varying)::text, ('take_home_assignment'::character varying)::text])))
+    CONSTRAINT evidences_source_type_check CHECK (((source_type)::text = ANY ((ARRAY['transcript'::character varying, 'interviewer_note'::character varying, 'resume'::character varying, 'live_coding'::character varying, 'take_home_assignment'::character varying])::text[])))
 );
 
 ALTER TABLE ONLY public.evidences FORCE ROW LEVEL SECURITY;
@@ -462,7 +471,7 @@ CREATE TABLE public.interview_assessments (
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     CONSTRAINT interview_assessments_rating_check CHECK (((rating IS NULL) OR ((rating >= 1) AND (rating <= 5)))),
-    CONSTRAINT interview_assessments_status_check CHECK (((status)::text = ANY (ARRAY[('draft'::character varying)::text, ('submitted'::character varying)::text, ('reviewed'::character varying)::text, ('approved'::character varying)::text])))
+    CONSTRAINT interview_assessments_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::character varying, 'submitted'::character varying, 'reviewed'::character varying, 'approved'::character varying])::text[])))
 );
 
 ALTER TABLE ONLY public.interview_assessments FORCE ROW LEVEL SECURITY;
@@ -488,7 +497,7 @@ CREATE TABLE public.interviews (
     completed_at timestamp(6) without time zone,
     created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
-    CONSTRAINT interviews_status_check CHECK (((status)::text = ANY (ARRAY[('draft'::character varying)::text, ('completed'::character varying)::text, ('cancelled'::character varying)::text])))
+    CONSTRAINT interviews_status_check CHECK (((status)::text = ANY ((ARRAY['draft'::character varying, 'completed'::character varying, 'cancelled'::character varying])::text[])))
 );
 
 ALTER TABLE ONLY public.interviews FORCE ROW LEVEL SECURITY;
@@ -522,13 +531,13 @@ ALTER TABLE ONLY public.job_postings FORCE ROW LEVEL SECURITY;
 
 CREATE TABLE public.jobs (
     id uuid DEFAULT uuidv7() NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
     organization_id uuid NOT NULL,
     project_id uuid NOT NULL,
-    seniority character varying,
-    status character varying DEFAULT 'draft'::character varying NOT NULL,
-    technology_stack character varying,
     title character varying NOT NULL,
+    seniority character varying,
+    technology_stack character varying,
+    status character varying DEFAULT 'draft'::character varying NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     description text
 );
@@ -659,7 +668,7 @@ CREATE TABLE public.market_catalog_posting_snapshots (
     metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
     created_at timestamp(6) without time zone NOT NULL,
     CONSTRAINT market_snapshots_content_digest_check CHECK (((content_digest)::text ~ '^[0-9a-f]{64}$'::text)),
-    CONSTRAINT market_snapshots_presence_state_check CHECK (((presence_state)::text = ANY (ARRAY[('present'::character varying)::text, ('missing'::character varying)::text, ('explicit_closed'::character varying)::text, ('unknown'::character varying)::text])))
+    CONSTRAINT market_snapshots_presence_state_check CHECK (((presence_state)::text = ANY ((ARRAY['present'::character varying, 'missing'::character varying, 'explicit_closed'::character varying, 'unknown'::character varying])::text[])))
 );
 
 
@@ -716,10 +725,10 @@ ALTER TABLE ONLY public.meetings FORCE ROW LEVEL SECURITY;
 
 CREATE TABLE public.memberships (
     id uuid DEFAULT uuidv7() NOT NULL,
-    active boolean DEFAULT true NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
     organization_id uuid NOT NULL,
     role character varying NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     user_id uuid NOT NULL,
     client_company_id uuid
@@ -732,12 +741,106 @@ CREATE TABLE public.memberships (
 
 CREATE TABLE public.organizations (
     id uuid DEFAULT uuidv7() NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
     name character varying NOT NULL,
     slug character varying NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL,
     onboarding_use_cases character varying[] DEFAULT '{}'::character varying[] NOT NULL
 );
+
+
+--
+-- Name: platform_domain_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.platform_domain_events (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    organization_id uuid NOT NULL,
+    event_type character varying NOT NULL,
+    event_version integer NOT NULL,
+    aggregate_type character varying NOT NULL,
+    aggregate_id character varying NOT NULL,
+    aggregate_version integer NOT NULL,
+    occurred_at timestamp(6) without time zone NOT NULL,
+    effective_at timestamp(6) without time zone,
+    principal character varying,
+    credential character varying,
+    actor character varying,
+    executor character varying,
+    interface character varying,
+    client character varying,
+    evidence_references jsonb DEFAULT '[]'::jsonb NOT NULL,
+    correlation_id character varying,
+    causation_id character varying,
+    command_id character varying,
+    idempotency_key character varying,
+    data jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL
+);
+
+ALTER TABLE ONLY public.platform_domain_events FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: platform_inbox_messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.platform_inbox_messages (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    organization_id uuid NOT NULL,
+    message_id character varying NOT NULL,
+    command_id character varying NOT NULL,
+    idempotency_key character varying NOT NULL,
+    command_name character varying NOT NULL,
+    command_version integer DEFAULT 1 NOT NULL,
+    interface character varying NOT NULL,
+    client character varying NOT NULL,
+    principal character varying NOT NULL,
+    credential character varying,
+    actor character varying,
+    executor character varying,
+    correlation_id character varying,
+    causation_id character varying,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    payload_digest character varying NOT NULL,
+    payload_reference character varying,
+    status character varying DEFAULT 'received'::character varying NOT NULL,
+    attempt_count integer DEFAULT 0 NOT NULL,
+    result jsonb,
+    processing_error jsonb,
+    received_at timestamp(6) without time zone NOT NULL,
+    processing_started_at timestamp(6) without time zone,
+    processed_at timestamp(6) without time zone,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+ALTER TABLE ONLY public.platform_inbox_messages FORCE ROW LEVEL SECURITY;
+
+
+--
+-- Name: platform_outbox_messages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.platform_outbox_messages (
+    id uuid DEFAULT uuidv7() NOT NULL,
+    organization_id uuid NOT NULL,
+    domain_event_id uuid NOT NULL,
+    message_type character varying NOT NULL,
+    message_version integer DEFAULT 1 NOT NULL,
+    destination character varying,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    status character varying DEFAULT 'pending'::character varying NOT NULL,
+    attempt_count integer DEFAULT 0 NOT NULL,
+    available_at timestamp(6) without time zone NOT NULL,
+    publishing_started_at timestamp(6) without time zone,
+    published_at timestamp(6) without time zone,
+    last_error jsonb,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL
+);
+
+ALTER TABLE ONLY public.platform_outbox_messages FORCE ROW LEVEL SECURITY;
 
 
 --
@@ -746,10 +849,10 @@ CREATE TABLE public.organizations (
 
 CREATE TABLE public.projects (
     id uuid DEFAULT uuidv7() NOT NULL,
-    client_company_id uuid NOT NULL,
-    created_at timestamp(6) without time zone NOT NULL,
-    name character varying NOT NULL,
     organization_id uuid NOT NULL,
+    client_company_id uuid NOT NULL,
+    name character varying NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
     updated_at timestamp(6) without time zone NOT NULL
 );
 
@@ -791,10 +894,10 @@ CREATE TABLE public.schema_migrations (
 --
 
 CREATE TABLE public.sessions (
-    created_at timestamp(6) without time zone NOT NULL,
-    ip_address character varying,
-    updated_at timestamp(6) without time zone NOT NULL,
     user_agent character varying,
+    ip_address character varying,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL,
     id uuid DEFAULT uuidv7() CONSTRAINT sessions_uuid_id_not_null NOT NULL,
     user_id uuid NOT NULL
 );
@@ -906,12 +1009,12 @@ ALTER TABLE ONLY public.tasks FORCE ROW LEVEL SECURITY;
 --
 
 CREATE TABLE public.users (
-    created_at timestamp(6) without time zone NOT NULL,
-    email character varying NOT NULL,
     name character varying NOT NULL,
+    email character varying NOT NULL,
     password_digest character varying NOT NULL,
-    updated_at timestamp(6) without time zone NOT NULL,
     verified boolean DEFAULT false NOT NULL,
+    created_at timestamp(6) without time zone NOT NULL,
+    updated_at timestamp(6) without time zone NOT NULL,
     id uuid DEFAULT uuidv7() CONSTRAINT users_uuid_id_not_null NOT NULL,
     onboarding_completed_at timestamp(6) without time zone
 );
@@ -1220,6 +1323,30 @@ ALTER TABLE ONLY public.memberships
 
 ALTER TABLE ONLY public.organizations
     ADD CONSTRAINT organizations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: platform_domain_events platform_domain_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.platform_domain_events
+    ADD CONSTRAINT platform_domain_events_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: platform_inbox_messages platform_inbox_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.platform_inbox_messages
+    ADD CONSTRAINT platform_inbox_messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: platform_outbox_messages platform_outbox_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.platform_outbox_messages
+    ADD CONSTRAINT platform_outbox_messages_pkey PRIMARY KEY (id);
 
 
 --
@@ -2115,6 +2242,76 @@ CREATE UNIQUE INDEX index_organizations_on_slug ON public.organizations USING bt
 
 
 --
+-- Name: index_platform_events_on_aggregate_version; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_platform_events_on_aggregate_version ON public.platform_domain_events USING btree (organization_id, aggregate_type, aggregate_id, aggregate_version);
+
+
+--
+-- Name: index_platform_events_on_workspace_command; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_platform_events_on_workspace_command ON public.platform_domain_events USING btree (organization_id, command_id);
+
+
+--
+-- Name: index_platform_events_on_workspace_type_time; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_platform_events_on_workspace_type_time ON public.platform_domain_events USING btree (organization_id, event_type, occurred_at);
+
+
+--
+-- Name: index_platform_inbox_on_workspace_command; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_platform_inbox_on_workspace_command ON public.platform_inbox_messages USING btree (organization_id, command_id);
+
+
+--
+-- Name: index_platform_inbox_on_workspace_idempotency; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_platform_inbox_on_workspace_idempotency ON public.platform_inbox_messages USING btree (organization_id, idempotency_key);
+
+
+--
+-- Name: index_platform_inbox_on_workspace_message; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX index_platform_inbox_on_workspace_message ON public.platform_inbox_messages USING btree (organization_id, message_id);
+
+
+--
+-- Name: index_platform_inbox_on_workspace_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_platform_inbox_on_workspace_status ON public.platform_inbox_messages USING btree (organization_id, status, received_at);
+
+
+--
+-- Name: index_platform_outbox_on_workspace_claim; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_platform_outbox_on_workspace_claim ON public.platform_outbox_messages USING btree (organization_id, status, publishing_started_at);
+
+
+--
+-- Name: index_platform_outbox_on_workspace_delivery; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_platform_outbox_on_workspace_delivery ON public.platform_outbox_messages USING btree (organization_id, status, available_at);
+
+
+--
+-- Name: index_platform_outbox_on_workspace_event; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX index_platform_outbox_on_workspace_event ON public.platform_outbox_messages USING btree (organization_id, domain_event_id);
+
+
+--
 -- Name: index_profile_version_evidences_on_version_evidence; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2496,6 +2693,14 @@ ALTER TABLE ONLY public.evidences
 
 ALTER TABLE ONLY public.competency_assessment_evidences
     ADD CONSTRAINT fk_rails_3357e6a30b FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
+
+
+--
+-- Name: platform_outbox_messages fk_rails_33dc25f12e; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.platform_outbox_messages
+    ADD CONSTRAINT fk_rails_33dc25f12e FOREIGN KEY (domain_event_id) REFERENCES public.platform_domain_events(id);
 
 
 --
@@ -3239,6 +3444,27 @@ CREATE POLICY organization_isolation ON public.meetings USING ((organization_id 
 
 
 --
+-- Name: platform_domain_events organization_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY organization_isolation ON public.platform_domain_events USING ((organization_id = (current_setting('app.current_organization'::text, true))::uuid)) WITH CHECK ((organization_id = (current_setting('app.current_organization'::text, true))::uuid));
+
+
+--
+-- Name: platform_inbox_messages organization_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY organization_isolation ON public.platform_inbox_messages USING ((organization_id = (current_setting('app.current_organization'::text, true))::uuid)) WITH CHECK ((organization_id = (current_setting('app.current_organization'::text, true))::uuid));
+
+
+--
+-- Name: platform_outbox_messages organization_isolation; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY organization_isolation ON public.platform_outbox_messages USING ((organization_id = (current_setting('app.current_organization'::text, true))::uuid)) WITH CHECK ((organization_id = (current_setting('app.current_organization'::text, true))::uuid));
+
+
+--
 -- Name: projects organization_isolation; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -3265,6 +3491,24 @@ CREATE POLICY organization_isolation ON public.tasks USING ((organization_id = (
 
 CREATE POLICY organization_isolation ON public.workspace_invitations USING ((organization_id = (current_setting('app.current_organization'::text, true))::uuid)) WITH CHECK ((organization_id = (current_setting('app.current_organization'::text, true))::uuid));
 
+
+--
+-- Name: platform_domain_events; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.platform_domain_events ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: platform_inbox_messages; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.platform_inbox_messages ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: platform_outbox_messages; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.platform_outbox_messages ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: projects; Type: ROW SECURITY; Schema: public; Owner: -
@@ -3294,9 +3538,13 @@ ALTER TABLE public.workspace_invitations ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
+\unrestrict 09V5mGpKFQWdGgxYen3VnWXYuKRiuUH0ROC0Z2WZPEMbA4qsvKDyb5Jyu9puWfO
+
+
 SET search_path TO "$user", public;
 
 INSERT INTO "schema_migrations" (version) VALUES
+('20260902200000'),
 ('20260902185000'),
 ('20260902100000'),
 ('20260902013000'),
@@ -3325,4 +3573,3 @@ INSERT INTO "schema_migrations" (version) VALUES
 ('20260723040000'),
 ('20250801153828'),
 ('20250801153827');
-
