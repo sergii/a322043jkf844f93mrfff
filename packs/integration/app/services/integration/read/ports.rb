@@ -34,6 +34,12 @@ module Integration
           raise Error::NotImplemented, "Read capability resolver is not implemented"
         end
       end
+
+      class WorkspaceScope
+        def call(_context, &_block)
+          raise Error::NotImplemented, "Read workspace scope is not implemented"
+        end
+      end
     end
   end
 end
