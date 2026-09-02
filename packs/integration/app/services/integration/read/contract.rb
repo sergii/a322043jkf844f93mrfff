@@ -21,6 +21,33 @@ module Integration
         { name:, version: }
       end
 
+      def input_schema
+        case request_kind
+        when :search
+          {
+            "type" => "object",
+            "properties" => {
+              "query" => { "type" => "string", "minLength" => 1 },
+              "filters" => { "type" => "object", "additionalProperties" => true },
+              "cursor" => { "type" => "string", "minLength" => 1 },
+              "limit" => { "type" => "integer", "minimum" => 1 }
+            },
+            "additionalProperties" => false
+          }.freeze
+        when :get
+          {
+            "type" => "object",
+            "properties" => {
+              "id" => { "type" => "string", "minLength" => 1 }
+            },
+            "required" => [ "id" ],
+            "additionalProperties" => false
+          }.freeze
+        else
+          raise Error::Unsupported.new(details: { contract: identifier, request_kind: })
+        end
+      end
+
       def normalize_input(input)
         attributes = normalize_hash(input, error_class: Error::InvalidInput, label: "input")
 
