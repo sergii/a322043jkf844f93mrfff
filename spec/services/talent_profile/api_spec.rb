@@ -7,10 +7,9 @@ RSpec.describe TalentProfile::Api do
   let!(:other_workspace) { Organization.create!(name: "Other", slug: "talent-profile-other") }
   let!(:user) do
     User.create!(
+      name: "Serhii User",
       email: "serhii@example.com",
-      first_name: "Serhii",
-      last_name: "User",
-      password: "password123"
+      password: "Password12345!"
     )
   end
   let!(:membership) { Membership.create!(organization: workspace, user:, role: "admin") }
