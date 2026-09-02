@@ -28,6 +28,12 @@ module Integration
           raise Error::NotImplemented, "Read authorization port is not implemented"
         end
       end
+
+      class CapabilityResolver
+        def resolve(_context)
+          raise Error::NotImplemented, "Read capability resolver is not implemented"
+        end
+      end
     end
   end
 end

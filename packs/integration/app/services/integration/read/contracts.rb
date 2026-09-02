@@ -4,10 +4,34 @@ module Integration
   module Read
     module Contracts
       LIST = [
-        Contract.new(name: "openings.search", version: 1, request_kind: :search, response_kind: :collection),
-        Contract.new(name: "openings.get", version: 1, request_kind: :get, response_kind: :resource),
-        Contract.new(name: "candidates.get", version: 1, request_kind: :get, response_kind: :resource),
-        Contract.new(name: "applications.get", version: 1, request_kind: :get, response_kind: :resource)
+        Contract.new(
+          name: "openings.search",
+          version: 1,
+          request_kind: :search,
+          response_kind: :collection,
+          required_capability: "read:openings"
+        ),
+        Contract.new(
+          name: "openings.get",
+          version: 1,
+          request_kind: :get,
+          response_kind: :resource,
+          required_capability: "read:openings"
+        ),
+        Contract.new(
+          name: "candidates.get",
+          version: 1,
+          request_kind: :get,
+          response_kind: :resource,
+          required_capability: "read:candidates"
+        ),
+        Contract.new(
+          name: "applications.get",
+          version: 1,
+          request_kind: :get,
+          response_kind: :resource,
+          required_capability: "read:applications"
+        )
       ].freeze
 
       REGISTRY = LIST.to_h { |contract| [ [ contract.name, contract.version ], contract ] }.freeze

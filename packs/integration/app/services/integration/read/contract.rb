@@ -3,13 +3,16 @@
 module Integration
   module Read
     class Contract
-      attr_reader :name, :version, :request_kind, :response_kind
+      attr_reader :name, :version, :request_kind, :response_kind, :required_capability
 
-      def initialize(name:, version:, request_kind:, response_kind:)
+      def initialize(name:, version:, request_kind:, response_kind:, required_capability:)
         @name = name.to_s.freeze
         @version = Integer(version)
         @request_kind = request_kind.to_sym
         @response_kind = response_kind.to_sym
+        @required_capability = required_capability.to_s.dup.freeze
+        raise ArgumentError, "required_capability must be present" if @required_capability.strip.empty?
+
         freeze
       end
 

@@ -12,7 +12,10 @@ Integration::Mcp::ReadAdapter
         v
 Integration::Read::Dispatcher
         |
-        +--> authorization port
+        +--> CapabilityAuthorization
+        |          |
+        |          v
+        |    CapabilityResolver
         |
         v
 query port -> owning package public query implementation
@@ -31,12 +34,14 @@ The adapter returns the complete Integration outcome as MCP `structuredContent`,
 
 `ContextFactory` fixes `interface` to `mcp` while accepting authenticated principal/credential identity and actor/executor/client provenance from the future runtime composition layer.
 
+Capability claims are never accepted from MCP tool arguments. Execution authorization is performed server-side through `Integration::Read::CapabilityAuthorization` and a concrete `Integration::Read::Ports::CapabilityResolver`.
+
 Still intentionally absent:
 
 - MCP HTTP or stdio server lifecycle
 - protocol negotiation/discovery implementation
 - authentication middleware
-- concrete authorization policy adapter
+- concrete capability resolver backed by workspace authorization/credential state
 - direct ActiveRecord access
 - concrete owning-package query implementations
 - write tools and Transactional Inbox/Outbox handling
