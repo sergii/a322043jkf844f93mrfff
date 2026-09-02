@@ -7,7 +7,59 @@ module Intelligence
     class NotFound < Error; end
     class ContractViolation < Error; end
 
+    MATCH_ASSESSMENT_RECORDED = "intelligence.match_assessment.recorded"
+
     module_function
+
+    def assess_match(workspace_id:, assessment:, command:, reliability_api: Platform::Reliability::Api)
+      assessment_attributes = normalize_public_hash(assessment, label: "assessment")
+      command_attributes = normalize_public_hash(command, label: "command")
+      validate_command_provenance!(command_attributes)
+      recorded_at = Time.current
+
+      snapshot = ActiveRecord::Base.transaction do
+        recorded = record_match_assessment(workspace_id:, **assessment_attributes)
+        payload = match_recorded_payload(recorded)
+
+        reliability_api.append_domain_event(
+          event_type: MATCH_ASSESSMENT_RECORDED,
+          event_version: 1,
+          aggregate_type: "match_assessment",
+          aggregate_id: recorded.fetch(:id),
+          expected_aggregate_version: 0,
+          occurred_at: recorded_at,
+          effective_at: recorded.fetch(:generated_at),
+          principal: command_attributes.fetch(:principal),
+          credential: command_attributes.fetch(:credential),
+          actor: command_attributes.fetch(:actor),
+          executor: command_attributes.fetch(:executor),
+          interface: command_attributes.fetch(:interface),
+          client: command_attributes.fetch(:client),
+          evidence_references: recorded.fetch(:evidence_references),
+          correlation_id: command_attributes[:correlation_id],
+          causation_id: command_attributes[:causation_id],
+          command_id: command_attributes.fetch(:command_id),
+          idempotency_key: command_attributes.fetch(:idempotency_key),
+          data: payload,
+          outbox_messages: [
+            {
+              message_type: MATCH_ASSESSMENT_RECORDED,
+              message_version: 1,
+              payload: payload,
+              available_at: recorded_at
+            }
+          ]
+        )
+
+        recorded
+      end
+
+      snapshot
+    rescue KeyError => error
+      raise InvalidInput, "missing command provenance field: #{error.key}"
+    rescue Platform::Reliability::Api::Error => error
+      raise ContractViolation, "reliability boundary rejected match assessment: #{error.message}"
+    end
 
     def record_match_assessment(**attributes)
       assessment_snapshot(RecordMatchAssessment.call(**attributes))
@@ -74,6 +126,46 @@ module Intelligence
       }.freeze
     end
     private_class_method :assessment_snapshot
+
+    def normalize_public_hash(value, label:)
+      raise InvalidInput, "#{label} must be an object" unless value.is_a?(Hash)
+
+      value.each_with_object({}) do |(key, nested), normalized|
+        unless key.is_a?(String) || key.is_a?(Symbol)
+          raise InvalidInput, "#{label} keys must be strings or symbols"
+        end
+
+        normalized[key.to_sym] = nested
+      end
+    end
+    private_class_method :normalize_public_hash
+
+    def validate_command_provenance!(command)
+      required = %i[command_id idempotency_key principal credential actor executor interface client]
+      missing = required.reject do |field|
+        value = command[field]
+        value.is_a?(String) && value.strip.present?
+      end
+      return if missing.empty?
+
+      raise InvalidInput, "command provenance is incomplete: #{missing.join(', ')}"
+    end
+    private_class_method :validate_command_provenance!
+
+    def match_recorded_payload(assessment)
+      {
+        assessment_id: assessment.fetch(:id),
+        candidate_id: assessment.fetch(:candidate_id),
+        candidate_profile_version_id: assessment.fetch(:candidate_profile_version_id),
+        job_opening_id: assessment.fetch(:job_opening_id),
+        version_number: assessment.fetch(:version_number),
+        opportunity_score: assessment.fetch(:opportunity_score),
+        action_priority: assessment.fetch(:action_priority),
+        scoring_policy_version: assessment.fetch(:scoring_policy_version),
+        generated_at: assessment.fetch(:generated_at)
+      }.freeze
+    end
+    private_class_method :match_recorded_payload
 
     def compact_frozen_hash(**attributes)
       attributes.compact.freeze
