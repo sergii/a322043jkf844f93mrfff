@@ -52,6 +52,22 @@ RSpec.describe Platform::Reliability::Api do
     expect(Platform::InboxMessage.count).to eq(1)
   end
 
+  it "uses canonical JSON ordering for idempotency digests" do
+    described_class.receive_command(
+      **command_attributes.merge(payload: { opening_id: "opening_opaque", candidate_id: "candidate_opaque" })
+    )
+
+    duplicate = described_class.receive_command(
+      **command_attributes.merge(
+        message_id: "delivery-2",
+        payload: { candidate_id: "candidate_opaque", opening_id: "opening_opaque" }
+      )
+    )
+
+    expect(duplicate.fetch(:duplicate)).to be(true)
+    expect(Platform::InboxMessage.count).to eq(1)
+  end
+
   it "rejects reuse of a command identity for a different payload" do
     described_class.receive_command(**command_attributes)
 
@@ -109,12 +125,14 @@ RSpec.describe Platform::Reliability::Api do
     end.to raise_error(described_class::ConcurrencyConflict, /current version is 1/)
   end
 
-  it "claims Outbox work with retry state and records successful publication" do
+  it "leases Outbox work and reclaims a stale publishing claim after a worker crash" do
+    now = Time.zone.parse("2026-09-02 18:00:00")
     change = described_class.append_domain_event(
       event_type: "job_posting.updated",
       aggregate_type: "JobPosting",
       aggregate_id: "job_posting_opaque",
       expected_aggregate_version: 0,
+      occurred_at: now,
       data: { changed: true },
       outbox_messages: [
         {
@@ -124,15 +142,30 @@ RSpec.describe Platform::Reliability::Api do
       ]
     )
 
-    claimed = described_class.claim_outbox(limit: 10)
+    first_claim = described_class.claim_outbox(limit: 10, at: now, lease_timeout: 5.minutes)
+    early_retry = described_class.claim_outbox(limit: 10, at: now + 4.minutes, lease_timeout: 5.minutes)
+    reclaimed = described_class.claim_outbox(limit: 10, at: now + 6.minutes, lease_timeout: 5.minutes)
     published = described_class.mark_outbox_published(
-      message_id: change.dig(:outbox, 0, :id)
+      message_id: change.dig(:outbox, 0, :id),
+      published_at: now + 7.minutes
     )
 
-    expect(claimed.one?).to be(true)
-    expect(claimed.first).to include(status: "publishing", attempt_count: 1)
-    expect(published).to include(status: "published", attempt_count: 1)
-    expect(published.fetch(:published_at)).to be_present
+    expect(first_claim.one?).to be(true)
+    expect(first_claim.first).to include(
+      status: "publishing",
+      attempt_count: 1,
+      publishing_started_at: now
+    )
+    expect(early_retry).to be_empty
+    expect(reclaimed.one?).to be(true)
+    expect(reclaimed.first).to include(
+      status: "publishing",
+      attempt_count: 2,
+      publishing_started_at: now + 6.minutes
+    )
+    expect(published).to include(status: "published", attempt_count: 2)
+    expect(published.fetch(:publishing_started_at)).to be_nil
+    expect(published.fetch(:published_at)).to eq(now + 7.minutes)
   end
 
   it "requires an explicit database workspace scope" do
