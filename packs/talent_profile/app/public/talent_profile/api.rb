@@ -35,6 +35,19 @@ module TalentProfile
       raise NotFound, "candidate not found"
     end
 
+    def fetch_latest_profile(candidate_id:)
+      workspace = WorkspaceGuard.current!
+      candidate_uuid = Identifiers.uuid(candidate_id, prefix: "candidate")
+      version = CandidateProfileVersion.for_organization(workspace)
+        .where(candidate_id: candidate_uuid)
+        .order(version_number: :desc)
+        .first!
+
+      profile_version_snapshot(version)
+    rescue ActiveRecord::RecordNotFound
+      raise NotFound, "candidate profile not found"
+    end
+
     def fetch_profile_version(candidate_id:, profile_version_id:)
       workspace = WorkspaceGuard.current!
       candidate_uuid = Identifiers.uuid(candidate_id, prefix: "candidate")
