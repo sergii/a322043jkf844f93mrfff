@@ -29,6 +29,10 @@ module MarketCatalog
       posting_snapshot(RecordPostingSnapshot.call(**attributes))
     end
 
+    def reconcile_posting_lifecycle(posting_id:)
+      job_posting_snapshot(ReconcilePostingLifecycle.call(posting_id:))
+    end
+
     def resolve_posting_opening_link(**attributes)
       decision = ResolvePostingOpeningLink.call(**attributes)
       decision && resolution_decision_snapshot(decision)
