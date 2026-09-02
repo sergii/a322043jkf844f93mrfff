@@ -8,14 +8,15 @@ RSpec.describe Acquisition::SourceRegistry, type: :model do
     expect(described_class.enabled?("dou")).to be(true)
     expect(described_class.acquisition_strategies("dou")).to eq(
       [
-        { "type" => "http_html", "preference" => "primary", "status" => "evaluate" },
+        { "type" => "rss", "preference" => "primary", "status" => "active" },
+        { "type" => "http_html", "preference" => "fallback", "status" => "active" },
         { "type" => "browser", "preference" => "fallback", "status" => "evaluate" }
       ]
     )
     expect(described_class.primary_strategy("dou")).to eq(
-      "type" => "http_html",
+      "type" => "rss",
       "preference" => "primary",
-      "status" => "evaluate"
+      "status" => "active"
     )
   end
 
