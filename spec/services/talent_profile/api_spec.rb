@@ -6,16 +6,16 @@ RSpec.describe TalentProfile::Api do
   let!(:workspace) { Organization.create!(name: "Talent Profile", slug: "talent-profile") }
   let!(:other_workspace) { Organization.create!(name: "Other", slug: "talent-profile-other") }
   let!(:user) do
-    User.create!(name: "Candidate User", email: "candidate-user@example.com", password: "Password12345!", verified: true)
+    User.create!(
+      email: "serhii@example.com",
+      first_name: "Serhii",
+      last_name: "User",
+      password: "password123"
+    )
   end
-  let!(:membership) { Membership.create!(user:, organization: workspace, role: "workspace_admin") }
+  let!(:membership) { Membership.create!(organization: workspace, user:, role: "admin") }
 
-  after do
-    Current.reset
-    ActiveRecord::Base.connection.execute("RESET app.current_organization")
-  end
-
-  it "keeps Candidate distinct from User while allowing an optional workspace-member link" do
+  it "keeps Candidate distinct from User while allowing an optional same-workspace link" do
     result = WorkspaceContext.with(workspace, membership:) do
       described_class.create_candidate(
         first_name: "Serhii",
@@ -67,7 +67,7 @@ RSpec.describe TalentProfile::Api do
     end
 
     expect { record.update!(profile_data: { skills: [ "Changed" ] }) }.to raise_error(ActiveRecord::ReadOnlyRecord)
-    expect { record.destroy! }.to raise_error(ActiveRecord::ReadOnlyRecord)
+    expect { record.destroy! }.to raise_error(ActiveRecord::RecordNotDestroyed)
   end
 
   it "requires explicit user acceptance before agent-derived data becomes canonical" do
@@ -83,7 +83,7 @@ RSpec.describe TalentProfile::Api do
           origin: "agent_accepted"
         )
       end
-    end.to raise_error(ArgumentError, /accepted_by_user_id/)
+    end.to raise_error(ActiveRecord::RecordInvalid, /explicit acceptance/)
 
     accepted = WorkspaceContext.with(workspace, membership:) do
       described_class.create_profile_version(
@@ -99,15 +99,27 @@ RSpec.describe TalentProfile::Api do
     expect(accepted.fetch(:accepted_at)).to be_present
   end
 
-  it "fails closed across workspaces at the public API boundary" do
+  it "rejects cross-workspace Candidate access through the public API" do
     candidate = WorkspaceContext.with(workspace) do
-      described_class.create_candidate(first_name: "Workspace", last_name: "A")
+      described_class.create_candidate(first_name: "Workspace", last_name: "One")
     end
 
     expect do
       WorkspaceContext.with(other_workspace) do
-        described_class.fetch_candidate(candidate_id: candidate.dig(:candidate, :id))
+        described_class.fetch_candidate(candidate.dig(:candidate, :id))
       end
     end.to raise_error(ActiveRecord::RecordNotFound)
+  end
+
+  it "rejects linking a Candidate to a User who is not a member of the workspace" do
+    expect do
+      WorkspaceContext.with(other_workspace) do
+        described_class.create_candidate(
+          first_name: "Wrong",
+          last_name: "Workspace",
+          linked_user_id: user.typed_id
+        )
+      end
+    end.to raise_error(ActiveRecord::RecordInvalid)
   end
 end
