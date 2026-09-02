@@ -34,7 +34,7 @@ received = Platform::Reliability::Api.receive_command(
 )
 ```
 
-`receive_command` is idempotent inside the current workspace. A retry with the same command/idempotency identity and payload returns the existing command snapshot, including a prior successful result. Reusing that identity for different command semantics or payload raises `IdempotencyConflict`.
+`receive_command` is idempotent inside the current workspace. A retry with the same command/idempotency identity and payload returns the existing command snapshot, including a prior successful result. JSON object keys are canonicalized before hashing, so equivalent payload objects do not conflict merely because their key insertion order differs. Reusing that identity for different command semantics or payload raises `IdempotencyConflict`.
 
 Processing transitions are explicit:
 
@@ -73,9 +73,11 @@ Events are append-only at the model boundary.
 
 A future publisher can use:
 
-- `claim_outbox` - claims due `pending`/`failed` rows with `FOR UPDATE SKIP LOCKED` and increments attempts.
-- `mark_outbox_published` - records successful publication.
-- `mark_outbox_failed` - records structured failure and next retry time.
+- `claim_outbox` - claims due `pending`/`failed` rows with `FOR UPDATE SKIP LOCKED`, records a publishing lease, and increments attempts.
+- `mark_outbox_published` - records successful publication and releases the lease.
+- `mark_outbox_failed` - records structured failure, releases the lease, and sets the next retry time.
+
+A row left in `publishing` because a worker crashed is reclaimable after the configured lease timeout. A live lease is not claimable by another worker, while a stale lease is claimed again with an incremented attempt count. This avoids permanently stranded Outbox records without requiring transport-specific recovery logic.
 
 The publisher transport itself is intentionally outside this slice.
 
