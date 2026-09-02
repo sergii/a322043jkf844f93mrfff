@@ -25,3 +25,9 @@ production:
     queue: acquisition
     args: [ "djinni" ]
     schedule: every 10 minutes
+
+  acquisition_remoteok:
+    class: AcquisitionCollectionJob
+    queue: acquisition
+    args: [ "remoteok" ]
+    schedule: every 15 minutes

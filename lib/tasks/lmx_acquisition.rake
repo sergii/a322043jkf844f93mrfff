@@ -52,6 +52,18 @@ namespace :lmx do
       puts JSON.pretty_generate(result.to_h)
     end
 
+    desc "Acquire current Remote OK vacancies into durable Phase 0 evidence (HTTP API primary)"
+    task remoteok: :environment do
+      result = Acquisition::RemoteOk.collect(
+        search: ENV["SEARCH"],
+        strategy: ENV["STRATEGY"],
+        run_key: ENV["RUN_KEY"],
+        started_at: Time.current
+      )
+
+      puts JSON.pretty_generate(result.to_h)
+    end
+
     desc "Print acquisition source health snapshots as JSON"
     task health: :environment do
       puts JSON.pretty_generate(Acquisition::SourceHealth.all.as_json)
