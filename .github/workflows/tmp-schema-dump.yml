@@ -34,7 +34,18 @@ jobs:
         with:
           bundler-cache: true
       - name: Load current structure and apply pending migrations
-        run: bin/rails db:test:prepare db:migrate
+        run: |
+          bin/rails db:test:prepare
+          bin/rails runner 'ActiveRecord::Base.connection_pool.migration_context.migrate'
+      - name: Dump structure with matching PostgreSQL client
+        run: |
+          docker run --rm --network host \
+            -e PGPASSWORD="$POSTGRES_PASSWORD" \
+            -v "$PWD/db:/dump" \
+            postgres:18.4 \
+            pg_dump --schema-only --no-privileges --no-owner \
+              -h 127.0.0.1 -p "$POSTGRES_PORT" -U "$POSTGRES_USER" \
+              --file /dump/structure.sql "$POSTGRES_TEST_DATABASE"
       - name: Upload generated structure
         uses: actions/upload-artifact@v7
         with:
