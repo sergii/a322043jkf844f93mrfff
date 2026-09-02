@@ -12,7 +12,7 @@ RSpec.describe TalentProfile::Api do
       password: "Password12345!"
     )
   end
-  let!(:membership) { Membership.create!(organization: workspace, user:, role: "admin") }
+  let!(:membership) { Membership.create!(organization: workspace, user:, role: "workspace_admin") }
 
   it "keeps Candidate distinct from User while allowing an optional same-workspace link" do
     result = WorkspaceContext.with(workspace, membership:) do
