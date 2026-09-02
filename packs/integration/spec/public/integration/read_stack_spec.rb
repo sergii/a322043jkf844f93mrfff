@@ -54,6 +54,28 @@ RSpec.describe Integration::ReadStack do
     end.new
   end
 
+  let(:match_api) do
+    Class.new do
+      attr_reader :requests
+
+      def initialize
+        @requests = []
+      end
+
+      def fetch_match_assessment(workspace_id:, assessment_id:)
+        @requests << { workspace_id:, assessment_id: }
+        {
+          id: assessment_id,
+          workspace_id:,
+          version_number: 2,
+          opportunity_score: 81.25,
+          action_priority: 92.5,
+          recommendation: "Apply now"
+        }
+      end
+    end.new
+  end
+
   let(:credential_source) do
     Class.new do
       attr_reader :contexts
@@ -68,7 +90,7 @@ RSpec.describe Integration::ReadStack do
           workspace_id: context.workspace_id,
           principal: context.principal,
           credential: context.credential,
-          capabilities: [ "read:openings", "read:candidates", "read:applications" ]
+          capabilities: [ "read:openings", "read:candidates", "read:matches", "read:applications" ]
         }
       end
     end.new
@@ -90,7 +112,8 @@ RSpec.describe Integration::ReadStack do
       credential_source:,
       workspace_api:,
       candidate_api:,
-      opening_api:
+      opening_api:,
+      match_api:
     )
   end
 
@@ -134,6 +157,31 @@ RSpec.describe Integration::ReadStack do
     expect(opening_api.opening_ids).to eq([ "opening_opaque" ])
     expect(opening_api.searches).to eq([ { query: "rails", filters: { "remote" => true }, limit: 10 } ])
     expect(workspace_api.workspace_ids).to eq([ "org_opaque", "org_opaque" ])
+  end
+
+  it "composes matches.get through the Intelligence public API" do
+    result = adapter.call(
+      name: "matches.get",
+      arguments: { id: "match_assessment_opaque" },
+      context:
+    )
+
+    expect(result[:isError]).to be(false)
+    expect(result.dig(:structuredContent, :data)).to include(
+      id: "match_assessment_opaque",
+      workspace_id: "org_opaque",
+      version_number: 2,
+      opportunity_score: 81.25,
+      action_priority: 92.5,
+      recommendation: "Apply now"
+    )
+    expect(result.dig(:structuredContent, :meta, :provenance)).to eq(
+      adapter: "intelligence.public_api"
+    )
+    expect(match_api.requests).to eq(
+      [ { workspace_id: "org_opaque", assessment_id: "match_assessment_opaque" } ]
+    )
+    expect(workspace_api.workspace_ids).to eq([ "org_opaque" ])
   end
 
   it "keeps applications.get explicitly unimplemented until canonical Personal CRM exists" do
