@@ -22,6 +22,9 @@ gem "rails_vite"
 gem "inertia_rails", "~> 3.21"
 gem "authentication-zero"
 gem "typelizer"
+gem "opentelemetry-api", "~> 1.11"
+gem "opentelemetry-sdk", "~> 1.13", require: false
+gem "opentelemetry-exporter-otlp", "~> 0.34.1", require: false
 
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
