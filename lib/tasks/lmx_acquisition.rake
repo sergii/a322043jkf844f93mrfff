@@ -64,6 +64,11 @@ namespace :lmx do
       puts JSON.pretty_generate(result.to_h)
     end
 
+    desc "Print the current Source Catalog × Search Profile acquisition plan as JSON"
+    task plan: :environment do
+      puts JSON.pretty_generate(Acquisition::SourcePlanner.plan.as_json)
+    end
+
     desc "Print acquisition source health snapshots as JSON"
     task health: :environment do
       puts JSON.pretty_generate(Acquisition::SourceHealth.all.as_json)

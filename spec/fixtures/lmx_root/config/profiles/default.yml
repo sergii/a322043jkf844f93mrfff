@@ -1,5 +1,10 @@
 version: 1
 
+targets:
+  domains: [technology]
+  technologies: [ruby, rails]
+  roles: [software_engineer, backend_engineer]
+
 source_priorities:
   dou: { lane: local_fast, weight: 100 }
   company_careers: { lane: remote_specialized, weight: 75 }

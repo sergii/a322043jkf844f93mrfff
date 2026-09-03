@@ -4,7 +4,7 @@ module Acquisition
   class SourceHealth
     class << self
       def all
-        SourceRegistry.source_ids.map { fetch(_1) }.freeze
+        SourceCatalog.active_source_ids.map { fetch(_1) }.freeze
       end
 
       def fetch(source_key)
