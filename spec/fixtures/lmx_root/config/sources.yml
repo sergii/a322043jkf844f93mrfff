@@ -7,6 +7,11 @@ sources:
     enabled: true
     market: ua
     kind: job_board
+    coverage:
+      scope: focused
+      domains: [technology]
+    lifecycle:
+      status: active
     acquisition:
       - type: rss
         preference: primary
@@ -28,7 +33,12 @@ sources:
     base_url: https://djinni.co/
     enabled: true
     market: ua
-    kind: job_board
+    kind: recruiting_marketplace
+    coverage:
+      scope: focused
+      domains: [technology]
+    lifecycle:
+      status: active
     acquisition:
       - type: rss
         preference: primary
@@ -51,6 +61,10 @@ sources:
     enabled: true
     market: ua
     kind: job_board
+    coverage:
+      scope: general
+    lifecycle:
+      status: active
     acquisition:
       - type: http_html
         preference: primary
@@ -70,6 +84,10 @@ sources:
     enabled: true
     market: ua
     kind: job_board
+    coverage:
+      scope: general
+    lifecycle:
+      status: active
     acquisition:
       - type: http_api
         preference: primary
@@ -91,7 +109,12 @@ sources:
     base_url: https://remoteok.com/
     enabled: true
     market: global
-    kind: remote_job_board
+    kind: job_board
+    coverage:
+      scope: focused
+      work_modes: [remote]
+    lifecycle:
+      status: active
     acquisition:
       - type: http_api
         preference: primary
@@ -105,11 +128,62 @@ sources:
       terms_review: pending
       rate_limit: unknown
 
+  - id: remote_rails
+    name: Remote Rails
+    base_url: https://www.remoterails.com/
+    enabled: true
+    market: global
+    kind: job_board
+    coverage:
+      scope: focused
+      technologies: [ruby, rails]
+      work_modes: [remote]
+    lifecycle:
+      status: evaluating
+    acquisition:
+      - type: http_html
+        preference: primary
+        status: evaluate
+      - type: browser
+        preference: fallback
+        status: evaluate
+    access:
+      requires_auth: false
+      robots_review: pending
+      terms_review: pending
+      rate_limit: unknown
+
+  - id: ruby_on_rails_jobs
+    name: RubyOnRailsJobs
+    base_url: https://www.rubyonrailsjobs.com/
+    enabled: false
+    market: global
+    kind: job_board
+    coverage:
+      scope: focused
+      technologies: [ruby, rails]
+    lifecycle:
+      status: retired
+      reason: Service announced closure in 2026; retained for catalog and historical identity.
+    acquisition:
+      - type: http_html
+        preference: primary
+        status: disabled
+    access:
+      requires_auth: false
+      robots_review: pending
+      terms_review: pending
+      rate_limit: unknown
+
 source_families:
   - id: company_careers
     name: Direct company career pages
     kind: company_career
     enabled: true
+    coverage:
+      scope: general
+    lifecycle:
+      status: evaluating
     platforms: [greenhouse, lever]
     acquisition:
       - type: http_html

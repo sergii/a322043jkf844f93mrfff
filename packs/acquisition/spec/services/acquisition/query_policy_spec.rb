@@ -13,4 +13,16 @@ RSpec.describe Acquisition::QueryPolicy, type: :model do
     expect(described_class.source_queries("djinni")).to eq([])
     expect(described_class.source_queries("remoteok")).to eq([])
   end
+
+  it "can resolve operational queries from another search profile without changing source metadata" do
+    profile = {
+      "acquisition" => {
+        "source_queries" => {
+          "work_ua" => [ "Go", "Go", " Backend Go " ]
+        }
+      }
+    }
+
+    expect(described_class.source_queries("work_ua", profile:)).to eq([ "Go", "Backend Go" ])
+  end
 end
