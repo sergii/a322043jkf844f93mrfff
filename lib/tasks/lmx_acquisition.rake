@@ -73,5 +73,21 @@ namespace :lmx do
     task health: :environment do
       puts JSON.pretty_generate(Acquisition::SourceHealth.all.as_json)
     end
+
+    desc "Dry-run or apply current parser logic to persisted raw acquisition evidence"
+    task replay: :environment do
+      source = ENV["SOURCE"].to_s.strip
+      abort "Please set SOURCE (for example SOURCE=dou)." if source.empty?
+
+      result = Acquisition::Replay.call(
+        source_key: source,
+        from: ENV["FROM"],
+        to: ENV["TO"],
+        limit: ENV["LIMIT"],
+        apply: %w[1 true yes].include?(ENV["APPLY"].to_s.strip.downcase)
+      )
+
+      puts JSON.pretty_generate(result.as_json)
+    end
   end
 end
