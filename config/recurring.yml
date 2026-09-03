@@ -43,3 +43,8 @@ production:
     queue: acquisition
     args: [ "remoteok" ]
     schedule: every 15 minutes
+
+  delivery_telegram:
+    class: DeliveryOutboxJob
+    queue: delivery
+    schedule: every minute

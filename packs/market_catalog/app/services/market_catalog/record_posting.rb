@@ -40,10 +40,29 @@ module MarketCatalog
     end
 
     def call
-      posting = find_existing_posting
-      return create_posting unless posting
+      JobPosting.transaction do
+        posting = find_existing_posting
 
-      posting.with_lock { refresh_posting(posting) }
+        if posting
+          posting.with_lock do
+            current_observation = observed_at >= posting.last_confirmed_present_at
+            before = material_state(posting)
+            refresh_posting(posting)
+
+            if current_observation && material_state(posting) != before
+              EmitPostingEvent.call(posting:, event_type: "JobPostingUpdated", occurred_at: observed_at)
+            end
+
+            posting
+          end
+        else
+          posting, created = create_posting
+          if created
+            EmitPostingEvent.call(posting:, event_type: "JobPostingDiscovered", occurred_at: observed_at)
+          end
+          posting
+        end
+      end
     end
 
     private
@@ -73,7 +92,7 @@ module MarketCatalog
     end
 
     def create_posting
-      JobPosting.create!(
+      posting = JobPosting.create!(
         source_key:,
         external_id:,
         canonical_url:,
@@ -87,11 +106,12 @@ module MarketCatalog
         description_fingerprint:,
         metadata:
       )
+      [ posting, true ]
     rescue ActiveRecord::RecordNotUnique
       posting = find_existing_posting
       raise unless posting
 
-      posting.with_lock { refresh_posting(posting) }
+      [ posting.with_lock { refresh_posting(posting) }, false ]
     end
 
     def refresh_posting(posting)
@@ -120,6 +140,18 @@ module MarketCatalog
 
       posting.update!(attributes)
       posting
+    end
+
+    def material_state(posting)
+      [
+        posting.title,
+        posting.canonical_url,
+        posting.application_url,
+        posting.publisher_company_id,
+        posting.source_updated_at&.utc&.iso8601(6),
+        posting.description_fingerprint,
+        posting.lifecycle_state
+      ]
     end
 
     def validate_stable_identity!(posting)
