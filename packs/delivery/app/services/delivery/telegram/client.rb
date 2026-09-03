@@ -28,9 +28,33 @@ module Delivery
         raise Error, "Telegram sendMessage failed with HTTP #{response.code}"
       end
 
+      def probe!
+        get!("getMe")
+        get!("getChat", chat_id:)
+        true
+      end
+
       private
 
       attr_reader :token, :chat_id, :api_base
+
+      def get!(method_name, params = {})
+        uri = URI("#{api_base}/bot#{token}/#{method_name}")
+        uri.query = URI.encode_www_form(params) if params.any?
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = uri.scheme == "https"
+        http.open_timeout = 3
+        http.read_timeout = 5
+        response = http.get(uri.request_uri)
+        raise Error, "Telegram #{method_name} failed with HTTP #{response.code}" unless response.is_a?(Net::HTTPSuccess)
+
+        payload = JSON.parse(response.body)
+        raise Error, "Telegram #{method_name} returned an unsuccessful response" unless payload["ok"] == true
+
+        payload
+      rescue JSON::ParserError
+        raise Error, "Telegram #{method_name} returned invalid JSON"
+      end
     end
   end
 end
