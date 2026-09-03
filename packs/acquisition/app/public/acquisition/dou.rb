@@ -38,15 +38,36 @@ module Acquisition
         parser: nil,
         clock: -> { Time.current }
       )
-        Collector.call(
+        Telemetry.collect(
+          source_key: SOURCE_KEY,
           search:,
-          strategy:,
-          run_key:,
-          started_at:,
+          requested_strategy: strategy,
+          collector_version: COLLECTOR_VERSION,
+          adapter_versions: ADAPTER_VERSIONS,
+          parser_versions: PARSER_VERSIONS,
           http_client: http_client || HttpClient.new,
           parser:,
-          clock:
-        )
+          parser_factory: method(:parser_for_strategy)
+        ) do |instrumented_http_client, instrumented_parser|
+          Collector.call(
+            search:,
+            strategy:,
+            run_key:,
+            started_at:,
+            http_client: instrumented_http_client,
+            parser: instrumented_parser,
+            clock:
+          )
+        end
+      end
+
+      private
+
+      def parser_for_strategy(strategy_type)
+        case strategy_type
+        when "rss" then FeedParser.new
+        when "http_html" then ListingParser.new
+        end
       end
     end
   end
