@@ -4,7 +4,7 @@ class JobPostingsController < InertiaController
   before_action :require_current_organization
 
   def create
-    job = Job.find_by_typed_id!(params[:job_id])
+    job = find_current_job!(params[:job_id])
     attributes = posting_params
     posting = job.job_postings.find_or_initialize_by(public_url: attributes.fetch(:public_url))
     posting.assign_attributes(attributes)
@@ -18,7 +18,7 @@ class JobPostingsController < InertiaController
   end
 
   def update
-    posting = JobPosting.find_by_typed_id!(params[:id])
+    posting = find_current_posting!(params[:id])
     authorize! posting
 
     if posting.update(posting_params)
@@ -29,6 +29,14 @@ class JobPostingsController < InertiaController
   end
 
   private
+
+  def find_current_job!(typed_id)
+    Job.for_organization(Current.organization).find(Job.typed_id_value(typed_id))
+  end
+
+  def find_current_posting!(typed_id)
+    JobPosting.for_organization(Current.organization).find(JobPosting.typed_id_value(typed_id))
+  end
 
   def posting_params
     params.permit(:channel, :status, :title, :public_url, :content_snapshot, :published_at, :closed_at)

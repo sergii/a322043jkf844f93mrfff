@@ -5,7 +5,7 @@ class CandidatesController < InertiaController
 
   def index
     render inertia: "candidates/index", props: {
-      candidates: Candidate.includes(:language_proficiencies).order(:last_name, :first_name).map { |candidate| candidate_props(candidate) }
+      candidates: current_candidates.includes(:language_proficiencies).order(:last_name, :first_name).map { |candidate| candidate_props(candidate) }
     }
   end
 
@@ -13,7 +13,7 @@ class CandidatesController < InertiaController
     render inertia: "candidates/new", props: {
       consentStatuses: Candidate::CONSENT_STATUSES,
       languageProficiencyLevels: language_proficiency_levels,
-      jobs: Job.includes(project: :client_company).where(status: %w[draft open]).order(:title).map do |job|
+      jobs: current_jobs.includes(project: :client_company).where(status: %w[draft open]).order(:title).map do |job|
         { id: job.typed_id, title: job.title, project: job.project.name, client: job.project.client_company.name }
       end,
       selectedJobId: params[:job_id]
@@ -21,7 +21,7 @@ class CandidatesController < InertiaController
   end
 
   def show
-    candidate = Candidate.includes(:language_proficiencies, applications: { job: { project: :client_company } }).find_by_typed_id!(params[:id])
+    candidate = find_current_candidate!(params[:id], includes: [ :language_proficiencies, { applications: { job: { project: :client_company } } } ])
     meetings = candidate.meetings.includes(:interview, :reminder_task, application: { job: { project: :client_company } }).order(scheduled_at: :desc)
     render inertia: "candidates/show", props: {
       candidate: candidate_props(candidate, include_profile: true),
@@ -34,16 +34,18 @@ class CandidatesController < InertiaController
   end
 
   def edit
-    candidate = Candidate.includes(:language_proficiencies).find_by_typed_id!(params[:id])
+    candidate = find_current_candidate!(params[:id], includes: :language_proficiencies)
     render inertia: "candidates/edit", props: { candidate: candidate_props(candidate, include_profile: true), consentStatuses: Candidate::CONSENT_STATUSES, languageProficiencyLevels: language_proficiency_levels }
   end
 
   def create
     candidate = Candidate.new(candidate_params)
+    job = find_current_job!(params[:job_id])
+
     Application.transaction do
       candidate.save!
       set_english_proficiency(candidate)
-      application = Application.create!(candidate:, job_id: Job.typed_id_value(params[:job_id]), sourced_by: Current.user, stage: "sourced")
+      application = Application.create!(candidate:, job:, sourced_by: Current.user, stage: "sourced")
       application.stage_events.create!(to_stage: "sourced", moved_by: Current.user, occurred_at: Time.current)
     end
     if candidate.persisted?
@@ -54,7 +56,7 @@ class CandidatesController < InertiaController
   end
 
   def update
-    candidate = Candidate.find_by_typed_id!(params[:id])
+    candidate = find_current_candidate!(params[:id])
     Candidate.transaction do
       candidate.update!(candidate_params.merge(profile_params))
       set_english_proficiency(candidate)
@@ -65,6 +67,24 @@ class CandidatesController < InertiaController
   end
 
   private
+
+  def current_candidates
+    Candidate.for_organization(Current.organization)
+  end
+
+  def current_jobs
+    Job.for_organization(Current.organization)
+  end
+
+  def find_current_candidate!(typed_id, includes: nil)
+    relation = current_candidates
+    relation = relation.includes(includes) if includes
+    relation.find(Candidate.typed_id_value(typed_id))
+  end
+
+  def find_current_job!(typed_id)
+    current_jobs.find(Job.typed_id_value(typed_id))
+  end
 
   def candidate_params
     params.permit(:first_name, :last_name, :email, :location, :time_zone, :source, :consent_status)

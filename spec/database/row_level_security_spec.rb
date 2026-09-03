@@ -4,8 +4,8 @@ require "rails_helper"
 require "pg"
 
 RSpec.describe "PostgreSQL row-level security", type: :model do
-  RUNTIME_ROLE = ENV.fetch("POSTGRES_RLS_TEST_USER", "hire_do_rls_test")
-  RUNTIME_PASSWORD = ENV.fetch("POSTGRES_RLS_TEST_PASSWORD", "hire_do_rls_test")
+  RUNTIME_ROLE = ENV.fetch("POSTGRES_RLS_TEST_USER", "lmx_rls_test")
+  RUNTIME_PASSWORD = ENV.fetch("POSTGRES_RLS_TEST_PASSWORD", "lmx_rls_test")
 
   before(:context) do
     provision_runtime_role!
@@ -54,9 +54,7 @@ RSpec.describe "PostgreSQL row-level security", type: :model do
 
   it "fails closed without tenant context and exposes only the selected tenant with context" do
     expect(candidate_ids).to be_empty
-
     set_organization(@organization_a_id)
-
     expect(candidate_ids).to contain_exactly(@candidate_a_id)
     expect(candidate_ids).not_to include(@candidate_b_id)
   end
@@ -74,9 +72,7 @@ RSpec.describe "PostgreSQL row-level security", type: :model do
 
   it "fails closed for interview records and exposes only the selected tenant's interview" do
     expect(interview_ids).to be_empty
-
     set_organization(@organization_a_id)
-
     expect(interview_ids).to contain_exactly(@interview_a_id)
     expect(interview_ids).not_to include(@interview_b_id)
   end
@@ -127,7 +123,6 @@ RSpec.describe "PostgreSQL row-level security", type: :model do
 
   def owner_connection_options
     config = ActiveRecord::Base.connection_db_config.configuration_hash
-
     {
       host: config.fetch(:host),
       port: config.fetch(:port),

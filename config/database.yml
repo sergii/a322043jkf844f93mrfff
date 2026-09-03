@@ -11,21 +11,21 @@ default: &default
   encoding: unicode
   host: <%= ENV.fetch("POSTGRES_HOST", "127.0.0.1") %>
   port: <%= ENV.fetch("POSTGRES_PORT", 5433) %>
-  username: <%= ENV.fetch("POSTGRES_USER", "hire_do_app") %>
-  password: <%= ENV.fetch("POSTGRES_PASSWORD", "hire_do_development") %>
+  username: <%= ENV.fetch("POSTGRES_USER", "lmx_app") %>
+  password: <%= ENV.fetch("POSTGRES_PASSWORD", "lmx_development") %>
   pool: <%= ENV.fetch("RAILS_MAX_THREADS", 5) %>
 
 development:
   <<: *default
-  database: <%= ENV.fetch("POSTGRES_DATABASE", "hire_do_development") %>
+  database: <%= ENV.fetch("POSTGRES_DATABASE", "lmx_development") %>
 
 # This database is recreated by the test suite. Keep it separate from development.
 test:
   <<: *default
   # Rails fixtures and schema loading require the database owner. Production and
   # development requests use the restricted runtime role above.
-  username: <%= ENV.fetch("POSTGRES_TEST_USER", "hire_do") %>
-  database: <%= ENV.fetch("POSTGRES_TEST_DATABASE", "hire_do_test") %>
+  username: <%= ENV.fetch("POSTGRES_TEST_USER", "lmx") %>
+  database: <%= ENV.fetch("POSTGRES_TEST_DATABASE", "lmx_test") %>
 
 production:
   primary:

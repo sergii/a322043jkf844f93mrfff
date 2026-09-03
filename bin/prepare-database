@@ -5,7 +5,7 @@
 # must receive explicit owner URLs and never reuse the restricted runtime role.
 if [ "${RAILS_ENV:-development}" != "production" ]; then
   echo "Preparing ${RAILS_ENV:-development} database with local migration credentials"
-  POSTGRES_USER="${POSTGRES_MIGRATION_USER:-hire_do}" ./bin/rails db:prepare
+  POSTGRES_USER="${POSTGRES_MIGRATION_USER:-lmx}" ./bin/rails db:prepare
   exit 0
 fi
 

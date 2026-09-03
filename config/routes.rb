@@ -27,7 +27,6 @@ Rails.application.routes.draw do
   resources :job_postings, only: %i[create update]
   resources :applications, only: :update
   get :pipeline, to: "pipeline#index"
-  get :gantt, to: "gantt#index"
   resources :candidates, only: %i[index new create show edit update]
   resources :interviews, only: %i[create show] do
     resources :assessments, only: :create, controller: "interview_assessments"

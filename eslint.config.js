@@ -68,6 +68,34 @@ export default [
     },
   },
   {
+    // Temporary strangler-migration exception for donor screens. New LMX code
+    // must not be added to this list; remove entries as each screen is replaced.
+    files: [
+      "app/javascript/components/app-sidebar.tsx",
+      "app/javascript/components/nav-main.tsx",
+      "app/javascript/pages/candidates/**",
+      "app/javascript/pages/client_companies/**",
+      "app/javascript/pages/dashboard/**",
+      "app/javascript/pages/interviews/**",
+      "app/javascript/pages/jobs/**",
+      "app/javascript/pages/meetings/**",
+      "app/javascript/pages/onboarding/**",
+      "app/javascript/pages/organizations/**",
+      "app/javascript/pages/projects/**",
+      "app/javascript/pages/settings/**",
+      "app/javascript/pages/tasks/**",
+    ],
+    rules: {
+      "import/order": "off",
+      "@typescript-eslint/consistent-type-definitions": "off",
+      "@typescript-eslint/no-base-to-string": "off",
+      "@typescript-eslint/restrict-template-expressions": "off",
+      "@typescript-eslint/prefer-nullish-coalescing": "off",
+      "@typescript-eslint/consistent-type-imports": "off",
+      "react-hooks/rules-of-hooks": "off",
+    },
+  },
+  {
     files: ["**/*.js"],
     ...tseslint.configs.disableTypeChecked,
   },
